@@ -88,7 +88,9 @@ export default function App() {
   const [coolNewPeople, setCoolNewPeople] = useState([]);
   const [allPostsCount, setAllPostsCount] = useState(0);
   const [activeBuddiesCount, setActiveBuddiesCount] = useState(0);
-  const [favoriteFeedPosts, setFavoriteFeedPosts] = useState([]);
+  const [globalActivePosts, setGlobalActivePosts] = useState([]);
+  const [feedTab, setFeedTab] = useState("radar");
+  const [inboundClaimsCount, setInboundClaimsCount] = useState(0);
 
   // 1. App Startup: Load Device UUID, sign in anonymously, and fetch venues
   useEffect(() => {
@@ -286,25 +288,40 @@ export default function App() {
   }, []);
 
   // Favorites feed: subscribe to all posts and filter by the logged-in user's favorited bars
+  // 2. Subscribe to all active Posts globally
   useEffect(() => {
-    if (!isLoggedIn) {
-      setFavoriteFeedPosts([]);
-      return;
-    }
-    const favoritedIds = userDoc?.favorited_bars || [];
     const unsub = dbOnSnapshot("posts", [], (snapshot) => {
       const posts = [];
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        if (favoritedIds.includes(data.venueId) && data.status !== "suppressed") {
+        if (data.status !== "suppressed") {
           posts.push({ id: doc.id, ...data });
         }
       });
-      posts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      setFavoriteFeedPosts(posts);
+      posts.sort((a, b) => (b.timestamp || b.encounterTimestamp || 0) - (a.timestamp || a.encounterTimestamp || 0));
+      setGlobalActivePosts(posts);
     });
     return () => unsub();
-  }, [isLoggedIn, userDoc?.favorited_bars]);
+  }, []);
+
+  // 2b. Subscribe to inbound connection claims (pending mail)
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) {
+      setInboundClaimsCount(0);
+      return;
+    }
+    const unsub = dbOnSnapshot("connections", [], (snapshot) => {
+      let count = 0;
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.receiverId === currentUser.uid && data.status === "pending") {
+          count++;
+        }
+      });
+      setInboundClaimsCount(count);
+    });
+    return () => unsub();
+  }, [currentUser]);
 
 
 
@@ -802,6 +819,8 @@ export default function App() {
   }
 
 
+  const radarPosts = globalActivePosts.filter(p => userDoc?.favorited_bars?.includes(p.venueId));
+
   return (
     <div className="myspace-layout">
       {/* Global asl Header */}
@@ -848,8 +867,14 @@ export default function App() {
                   setNavigationScreen("mail");
                   setSelectedProfileUser(null);
                 }}
+                style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
               >
                 Mail
+                {inboundClaimsCount > 0 && (
+                  <span style={{ backgroundColor: "#ff007f", color: "#ffffff", padding: "1px 5px", borderRadius: "10px", fontSize: "10px", fontWeight: "bold", lineHeight: "1" }}>
+                    {inboundClaimsCount}
+                  </span>
+                )}
               </span>
               <span 
                 className={`myspace-nav-link ${navigationScreen === "post" ? "active" : ""}`} 
@@ -897,67 +922,315 @@ export default function App() {
             </div>
 
             {isLoggedIn ? (
-              /* LOGGED-IN: Favorites Feed */
-              <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
-                <div className="section-header-orange" style={{ margin: 0, backgroundColor: "#003399", color: "#fff", borderLeft: "4px solid #ff007f", padding: "6px 10px", fontWeight: "bold", fontSize: "13px" }}>
-                  📡 Bar Radar
-                </div>
-                <div style={{ border: "1px solid #6699cc", borderTop: "none", backgroundColor: "#fff" }}>
-                  {(userDoc?.favorited_bars || []).length === 0 ? (
-                    <div style={{ padding: "20px", textAlign: "center", fontSize: "13px", color: "#666", fontStyle: "italic", lineHeight: "1.5" }}>
-                      <div style={{ fontSize: "28px", marginBottom: "8px" }}>📡</div>
-                      No favorited bars yet. Browse locations and ⭐ favorite a bar to see its posts here.
+              /* LOGGED-IN HOME EXPERIENCE */
+              <>
+                {/* 1. MySpace-style User Dashboard Widget */}
+                <div className="window" style={{ width: "100%", boxSizing: "border-box" }}>
+                  <div className="window-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>👤 My Dashboard</span>
+                    <span>asl // v2.0</span>
+                  </div>
+                  <div className="window-body" style={{ display: "flex", gap: "12px", padding: "10px", alignItems: "center", backgroundColor: "#ffffff", margin: 0 }}>
+                    <div 
+                      onClick={handleOpenMyProfile}
+                      style={{ 
+                        fontSize: "36px", 
+                        cursor: "pointer", 
+                        padding: "6px", 
+                        border: "2px outset #ff007f", 
+                        backgroundColor: "#fff0f5",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        borderRadius: "8px",
+                        width: "50px",
+                        height: "50px",
+                        flexShrink: 0
+                      }}
+                      title="View my profile"
+                    >
+                      {userDoc?.emoji_avatar || "👥"}
                     </div>
-                  ) : favoriteFeedPosts.length === 0 ? (
-                    <div style={{ padding: "20px", textAlign: "center", fontSize: "13px", color: "#666", fontStyle: "italic", lineHeight: "1.5" }}>
-                      <div style={{ fontSize: "28px", marginBottom: "8px" }}>📭</div>
-                      No posts yet from your favorited bars. Check back soon.
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "4px" }}>
+                        <h2 style={{ margin: 0, fontSize: "15px", color: "#003399", fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          Yo, {userDoc?.username || currentUser.email?.split("@")[0] || "User"}!
+                        </h2>
+                        <span style={{ fontSize: "10px", backgroundColor: "#ffccd8", color: "#b30059", padding: "1px 5px", borderRadius: "10px", fontWeight: "bold" }}>
+                          {userDoc?.mood || "Chillin' 😎"}
+                        </span>
+                      </div>
+                      <p style={{ margin: "3px 0 6px 0", fontSize: "11px", color: "#666", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        "{userDoc?.headline || "everyone's favorite dial-up partner"}"
+                      </p>
+                      <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+                        <button 
+                          onClick={handleOpenMyProfile} 
+                          style={{ padding: "2px 6px", fontSize: "10px", minHeight: "24px", cursor: "pointer" }}
+                        >
+                          ✏️ Profile
+                        </button>
+                        <button 
+                          onClick={() => setNavigationScreen("mail")} 
+                          style={{ padding: "2px 6px", fontSize: "10px", minHeight: "24px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                        >
+                          📬 Inbox
+                          {inboundClaimsCount > 0 && (
+                            <span style={{ backgroundColor: "#ff007f", color: "#fff", padding: "0 4px", borderRadius: "10px", fontSize: "9px", fontWeight: "bold" }}>
+                              {inboundClaimsCount}
+                            </span>
+                          )}
+                        </button>
+                        <button 
+                          onClick={() => setNavigationScreen("city")} 
+                          style={{ padding: "2px 6px", fontSize: "10px", minHeight: "24px", cursor: "pointer" }}
+                        >
+                          🌵 Find Bars
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Rich Aggregated Feed with Tabs */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  {/* Tab Headers */}
+                  <div style={{ display: "flex", gap: "4px", marginBottom: "0", position: "relative", zIndex: 1 }}>
+                    <button 
+                      onClick={() => setFeedTab("radar")}
+                      style={{
+                        flex: 1,
+                        borderRadius: "4px 4px 0 0",
+                        backgroundColor: feedTab === "radar" ? "#ffffff" : "#e5e5e5",
+                        color: feedTab === "radar" ? "#003399" : "#666",
+                        border: "1px solid #003399",
+                        borderBottom: feedTab === "radar" ? "1px solid #ffffff" : "1px solid #003399",
+                        fontWeight: "bold",
+                        fontSize: "12px",
+                        minHeight: "32px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      📡 My Radar ({radarPosts.length})
+                    </button>
+                    <button 
+                      onClick={() => setFeedTab("global")}
+                      style={{
+                        flex: 1,
+                        borderRadius: "4px 4px 0 0",
+                        backgroundColor: feedTab === "global" ? "#ffffff" : "#e5e5e5",
+                        color: feedTab === "global" ? "#003399" : "#666",
+                        border: "1px solid #003399",
+                        borderBottom: feedTab === "global" ? "1px solid #ffffff" : "1px solid #003399",
+                        fontWeight: "bold",
+                        fontSize: "12px",
+                        minHeight: "32px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      🌍 Global Feed ({globalActivePosts.length})
+                    </button>
+                  </div>
+
+                  {/* Tab Body */}
+                  {feedTab === "radar" && radarPosts.length === 0 ? (
+                    /* Radar Suggestions if empty */
+                    <div style={{ border: "1px solid #003399", borderTop: "none", backgroundColor: "#fff", padding: "12px", borderRadius: "0 0 4px 4px" }}>
+                      <div style={{ textAlign: "center", marginBottom: "12px", padding: "8px", backgroundColor: "#f9fbfd", border: "1px dashed #6699cc" }}>
+                        <div style={{ fontSize: "24px", marginBottom: "4px" }}>📡</div>
+                        <h3 style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#003399" }}>Radar is Empty</h3>
+                        <p style={{ margin: 0, fontSize: "11px", color: "#666", lineHeight: "1.4" }}>
+                          Favorite some local bars to populate your customized radar!
+                        </p>
+                      </div>
+                      
+                      <div style={{ fontSize: "11px", fontWeight: "bold", marginBottom: "6px", color: "#333" }}>
+                        🔥 Quick-Favorite Popular Venues:
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px" }}>
+                        {venues.slice(0, 4).map(venue => {
+                          const isFav = userDoc?.favorited_bars?.includes(venue.fsq_id);
+                          return (
+                            <div 
+                              key={venue.fsq_id} 
+                              style={{ 
+                                border: "1px solid #ccc", 
+                                padding: "6px", 
+                                borderRadius: "4px", 
+                                backgroundColor: "#fcfcfc",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "space-between",
+                                gap: "4px"
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontWeight: "bold", fontSize: "10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  🍹 {venue.name}
+                                </div>
+                                <div style={{ fontSize: "8px", color: "#888" }}>{venue.zone}</div>
+                              </div>
+                              <button 
+                                onClick={() => handleToggleFavorite(venue)}
+                                style={{
+                                  width: "100%",
+                                  minHeight: "22px",
+                                  fontSize: "9px",
+                                  padding: "2px",
+                                  cursor: "pointer",
+                                  backgroundColor: isFav ? "#ffccd8" : "#f0f0f0",
+                                  color: isFav ? "#b30059" : "#333",
+                                  fontWeight: isFav ? "bold" : "normal"
+                                }}
+                              >
+                                {isFav ? "⭐ Added" : "⭐ Favorite"}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      {favoriteFeedPosts.map((post, idx) => {
-                        const timeAgo = (() => {
-                          const diff = Date.now() - (post.timestamp || 0);
-                          const mins = Math.floor(diff / 60000);
-                          const hrs = Math.floor(diff / 3600000);
-                          const days = Math.floor(diff / 86400000);
-                          if (mins < 2) return "just now";
-                          if (mins < 60) return `${mins}m ago`;
-                          if (hrs < 24) return `${hrs}h ago`;
-                          return `${days}d ago`;
-                        })();
-                        return (
-                          <div 
-                            key={post.id}
-                            style={{
-                              borderBottom: idx < favoriteFeedPosts.length - 1 ? "1px solid #e0e8f5" : "none",
-                              padding: "10px 12px",
-                              cursor: "pointer"
-                            }}
-                            onClick={() => {
-                              const venue = venues.find(v => v.fsq_id === post.venueId);
-                              if (venue) handleSelectVenue(venue);
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "4px", gap: "8px" }}>
-                              <span style={{ fontWeight: "bold", fontSize: "11px", color: "#003399", textDecoration: "underline", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                📍 {post.venueName}
-                              </span>
-                              <span style={{ fontSize: "10px", color: "#999", whiteSpace: "nowrap", flexShrink: 0 }}>{timeAgo}</span>
+                    /* Display Posts List */
+                    <div style={{ border: "1px solid #003399", borderTop: "none", backgroundColor: "#fff", display: "flex", flexDirection: "column", borderRadius: "0 0 4px 4px" }}>
+                      {(feedTab === "radar" ? radarPosts : globalActivePosts).length === 0 ? (
+                        <div style={{ padding: "30px 20px", textAlign: "center", fontSize: "13px", color: "#666", fontStyle: "italic", lineHeight: "1.5" }}>
+                          <div style={{ fontSize: "28px", marginBottom: "8px" }}>📭</div>
+                          No active missed connection reports in this feed.
+                        </div>
+                      ) : (
+                        (feedTab === "radar" ? radarPosts : globalActivePosts).map((post, idx, currentArr) => {
+                          const timeAgo = (() => {
+                            const diff = Date.now() - (post.timestamp || post.encounterTimestamp || 0);
+                            const mins = Math.floor(diff / 60000);
+                            const hrs = Math.floor(diff / 3600000);
+                            const days = Math.floor(diff / 86400000);
+                            if (mins < 2) return "just now";
+                            if (mins < 60) return `${mins}m ago`;
+                            if (hrs < 24) return `${hrs}h ago`;
+                            return `${days}d ago`;
+                          })();
+                          
+                          return (
+                            <div 
+                              key={post.id}
+                              style={{
+                                borderBottom: idx < currentArr.length - 1 ? "1px solid #e0e8f5" : "none",
+                                padding: "12px",
+                                cursor: "pointer"
+                              }}
+                              onClick={() => {
+                                const venue = venues.find(v => v.fsq_id === post.venueId);
+                                if (venue) handleSelectVenue(venue);
+                              }}
+                            >
+                              {/* Header: User avatar + name + mood */}
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                  <span style={{ fontSize: "16px" }}>{post.emoji_avatar || "👥"}</span>
+                                  <span style={{ fontWeight: "bold", fontSize: "12px", color: "#003399", textDecoration: "underline" }}>
+                                    {post.username || "Anonymous"}
+                                  </span>
+                                  <span style={{ fontSize: "10px", color: "#b30059", backgroundColor: "#ffccd8", padding: "1px 5px", borderRadius: "8px", fontWeight: "bold" }}>
+                                    {post.mood || "Chillin'"}
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: "10px", color: "#999" }}>{timeAgo}</span>
+                              </div>
+
+                              {/* Speech Bubble / Message Content */}
+                              <div style={{ 
+                                backgroundColor: "#f7f9fc", 
+                                border: "1px solid #dcdcdc", 
+                                borderRadius: "6px", 
+                                padding: "8px 10px", 
+                                fontSize: "12px", 
+                                color: "#333", 
+                                lineHeight: "1.4",
+                                marginBottom: "6px"
+                              }}>
+                                {parseBBCode(post.text)}
+                              </div>
+
+                              {/* Footer details: Venue name & timestamp */}
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10px", color: "#888" }}>
+                                <span style={{ color: "#003399", fontWeight: "bold" }}>
+                                  📍 {post.venueName} ({post.venueZone})
+                                </span>
+                                <span>
+                                  🕐 {post.date} · {post.timeRange}
+                                </span>
+                              </div>
                             </div>
-                            <div style={{ fontSize: "12px", color: "#333", lineHeight: "1.4", marginBottom: "4px" }}>
-                              {post.text}
-                            </div>
-                            <div style={{ fontSize: "10px", color: "#888" }}>
-                              🕐 {post.date} · {post.timeRange}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      )}
                     </div>
                   )}
                 </div>
-              </div>
+
+                {/* 3. Cool New People (also available when logged in!) */}
+                <div className="myspace-orange-box" style={{ marginTop: "8px" }}>
+                  <div className="section-header-orange" style={{ margin: 0, backgroundColor: "#003399", color: "#fff", borderLeft: "4px solid #ff007f" }}>Cool New People</div>
+                  <div style={{ display: "flex", justifyContent: "space-around", padding: "15px", gap: "10px" }}>
+                    {coolNewPeople.length === 0 ? (
+                      <div 
+                        style={{ textAlign: "center", fontSize: "14px", cursor: "pointer", width: "100%" }}
+                        onClick={() => handleOpenProfile("tom", {
+                          username: "Tom",
+                          mood: "Friendly 🙂",
+                          bio: "Co-founder of asl. Let me know if you have any questions!",
+                          profileTheme: "classic",
+                          emoji_avatar: "👥🥃💖"
+                        })}
+                      >
+                        <div style={{ fontSize: "24px", marginBottom: "8px" }}>👥🥃💖</div>
+                        <div style={{ fontWeight: "bold", textDecoration: "underline", color: "#003399" }}>Tom</div>
+                        <div style={{ color: "#666", fontStyle: "italic" }}>"Your first friend."</div>
+                      </div>
+                    ) : (
+                      coolNewPeople.map(person => (
+                        <div 
+                          key={person.uid}
+                          style={{ textAlign: "center", fontSize: "13px", cursor: "pointer", flex: 1, maxWidth: "120px" }}
+                          onClick={() => handleOpenProfile(person.uid, person)}
+                        >
+                          <div style={{ fontSize: "24px", marginBottom: "5px", display: "flex", justifyContent: "center" }}>
+                            {person.emoji_avatar || "👥"}
+                          </div>
+                          <div style={{ fontWeight: "bold", textDecoration: "underline", color: "#003399", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {person.username}
+                          </div>
+                          <div style={{ color: "#666", fontSize: "11px", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            "{person.mood || "Chillin'"}"
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* 4. asl Status Dashboard (telemetry dashboard) */}
+                <div className="myspace-orange-box" style={{ backgroundColor: "#f2f6ff", border: "1px solid #6699ff", borderRadius: "4px", padding: 0 }}>
+                  <div className="section-header-orange" style={{ margin: 0, backgroundColor: "#6699ff", color: "#fff", borderLeft: "4px solid #003399" }}>
+                    asl Status Dashboard
+                  </div>
+                  <div style={{ padding: "12px 15px", fontSize: "13px", lineHeight: "1.5" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                      <span>📬 Total Encounters:</span>
+                      <strong>{allPostsCount} encounters</strong>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                      <span>📡 Active Users Online:</span>
+                      <strong>{activeBuddiesCount} online</strong>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                      <span>🛡️ Safety Shield Guard:</span>
+                      <span style={{ color: "green", fontWeight: "bold" }}>● ACTIVE</span>
+                    </div>
+                  </div>
+                </div>
+              </>
             ) : (
               /* GUEST: Cool New People + asl Status */
               <>
