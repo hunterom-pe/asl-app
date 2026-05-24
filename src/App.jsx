@@ -362,13 +362,6 @@ export default function App() {
   // Post wizard submit handler
   const handleWizardSubmit = async (postData) => {
     try {
-      const moderation = await moderateTextWithGemini(postData.text || "", "post");
-      if (!moderation.approved) {
-        const roasts = moderation.category === "doxxing" ? DOXXING_ROASTS : SPAM_ROASTS;
-        const randomRoast = roasts[Math.floor(Math.random() * roasts.length)];
-        throw new Error(randomRoast);
-      }
-
       await dbAddDoc("posts", {
         ...postData,
         userId: currentUser.uid
@@ -1419,6 +1412,8 @@ export default function App() {
             onClose={() => setNavigationScreen(selectedVenue ? "feed" : "home")}
             onSubmit={handleWizardSubmit}
             preselectedVenue={selectedVenue}
+            currentUserProfile={userDoc}
+            onModerationError={setModerationError}
           />
         )}
 

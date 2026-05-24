@@ -1,8 +1,24 @@
 import { useState } from "react";
 import TitleBar from "./TitleBar";
 import { searchVenues } from "../services/foursquare";
+import { moderateTextWithGemini } from "../services/security";
 
 const EMOJI_PRESETS = ["👥", "🥃", "💖", "😎", "⚡", "😍", "🎧", "🌧️", "🖤", "🍹", "🌵", "🥂", "🍕", "🎱", "👾", "💾", "📟", "🛹", "🎸", "🎤", "🍻", "🔥", "✨", "🌟", "🎈", "🎉"];
+
+const SPAM_ROASTS = [
+  "You sure you want to post that, fam?",
+  "This ain't it, chief. The server admin caught you lacking.",
+  "Bestie, the validation check failed. Let’s try that again.",
+  "Cooked by the system daemon. Post discarded.",
+  "Who hurt you? Keep the bad vibes off the local node."
+];
+
+const DOXXING_ROASTS = [
+  "Bro tried to sneak a social handle in. We don’t do that here.",
+  "Unc, no phone numbers or real names allowed. Keep it anonymous.",
+  "Gatekeeping is a feature, not a bug. Remove the external links.",
+  "Not the @ link... Secure portal validation failed."
+];
 
 /**
  * MySpace/Web 2.0 styled Creation Wizard for missed connections.
@@ -10,12 +26,13 @@ const EMOJI_PRESETS = ["👥", "🥃", "💖", "😎", "⚡", "😍", "🎧", "�
  * @param {Function} props.onClose Close handler
  * @param {Function} props.onSubmit Submit handler (saves post to db)
  */
-export default function Wizard({ onClose, onSubmit, preselectedVenue = null }) {
+export default function Wizard({ onClose, onSubmit, preselectedVenue = null, currentUserProfile = null, onModerationError = null }) {
   const [step, setStep] = useState(preselectedVenue ? 2 : 1);
   const [searchQuery, setSearchQuery] = useState("");
   const [venuesList, setVenuesList] = useState([]);
   const [selectedVenue, setSelectedVenue] = useState(preselectedVenue);
   const [isSearching, setIsSearching] = useState(false);
+  const [isModerating, setIsModerating] = useState(false);
 
   // Step 2 Form States (36-Hour Scarcity)
   const [datetimeVal, setDatetimeVal] = useState(() => {
@@ -32,11 +49,11 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null }) {
   const [showHelp, setShowHelp] = useState(false);
 
   // Step 4 Profile Customization States
-  const [username, setUsername] = useState("");
-  const [mood, setMood] = useState("Chillin' 😎");
-  const [bio, setBio] = useState("Just browsing the local nightlife spots.");
-  const [profileTheme, setProfileTheme] = useState("classic");
-  const [emojiAvatar, setEmojiAvatar] = useState("👥🥃💖");
+  const [username, setUsername] = useState(currentUserProfile?.username || "");
+  const [mood, setMood] = useState(currentUserProfile?.mood || "Chillin' 😎");
+  const [bio, setBio] = useState(currentUserProfile?.bio || "Just browsing the local nightlife spots.");
+  const [profileTheme, setProfileTheme] = useState(currentUserProfile?.profileTheme || "classic");
+  const [emojiAvatar, setEmojiAvatar] = useState(currentUserProfile?.emoji_avatar || "👥🥃💖");
 
   const handleAddEmoji = (em) => {
     const current = Array.from(emojiAvatar);
@@ -87,7 +104,7 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null }) {
     return { dateStr, timeStr };
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1 && !selectedVenue) {
       setErrorMsg("Please select a nightlife venue to continue.");
       return;
@@ -132,23 +149,28 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null }) {
         setErrorMsg(valErrorA || valErrorB || valErrorC);
         return;
       }
-    }
-    if (step === 4) {
-      if (!username.trim()) {
-        setErrorMsg("Please enter a username or alias for your profile card.");
-        return;
-      }
-      if (username.length > 25) {
-        setErrorMsg("Username must be 25 characters or less.");
-        return;
-      }
-      if (bio.length > 500) {
-        setErrorMsg("Biography must be 500 characters or less.");
-        return;
-      }
-      if (Array.from(emojiAvatar).length !== 3) {
-        setErrorMsg("Please select exactly 3 emojis for your avatar.");
-        return;
+
+      // Run Gemini moderation before moving to step 4 (Confirmation)
+      setIsModerating(true);
+      setErrorMsg("");
+      try {
+        const concatenatedText = `About Me: ${fieldA} | About You: ${fieldB} | Context: ${fieldC}`;
+        const moderation = await moderateTextWithGemini(concatenatedText, "post");
+        if (!moderation.approved) {
+          const roasts = moderation.category === "doxxing" ? DOXXING_ROASTS : SPAM_ROASTS;
+          const randomRoast = roasts[Math.floor(Math.random() * roasts.length)];
+          if (onModerationError) {
+            onModerationError(randomRoast);
+          } else {
+            setErrorMsg(randomRoast);
+          }
+          setIsModerating(false);
+          return;
+        }
+      } catch (err) {
+        console.error("Gemini Moderation Error:", err);
+      } finally {
+        setIsModerating(false);
       }
     }
 
@@ -189,7 +211,7 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null }) {
       {/* Wizard Header Banner */}
       <div className="wizard-header-banner">
         <h1>Create Missed Connection</h1>
-        <p>Step {step} of 5 - Post your encounter online</p>
+        <p>Step {step} of 4 - Post your encounter online</p>
       </div>
 
       <div className="window-body" style={{ flex: 1, backgroundColor: "#fff", padding: "16px", display: "flex", flexDirection: "column", margin: 0, minHeight: 0 }}>
@@ -358,102 +380,7 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null }) {
 
           {step === 4 && (
             <div>
-              <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", color: "#003399" }}>Step 4: Customize asl Profile</h3>
-              <p style={{ margin: "0 0 12px 0", fontSize: "13px", lineHeight: "1.4", color: "#555" }}>
-                Configure how your Profile Card will appear when other users click your name on this post.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div className="field-row-stacked" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label htmlFor="wizard-username" style={{ fontWeight: "bold", fontSize: "13px" }}>asl Alias / Display Name:</label>
-                  <input 
-                    id="wizard-username"
-                    type="text"
-                    placeholder="e.g. Tom, retro_babe, bar_legend"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    style={{ width: "100%" }}
-                  />
-                </div>
-                <div className="field-row-stacked" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontWeight: "bold", fontSize: "13px" }}>Emoji Avatar (Select exactly 3):</label>
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "4px" }}>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      {Array.from(emojiAvatar).map((em, idx) => (
-                        <span 
-                          key={idx} 
-                          onClick={() => handleRemoveEmojiAtIndex(idx)}
-                          style={{ fontSize: "28px", cursor: "pointer", border: "1px inset #fff", padding: "4px", backgroundColor: "#fff" }}
-                          title="Click to remove"
-                        >
-                          {em}
-                        </span>
-                      ))}
-                      {Array.from(emojiAvatar).length === 0 && (
-                        <span style={{ fontSize: "12px", color: "#666" }}>None selected</span>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "2px", width: "100%", maxHeight: "80px", overflowY: "auto", border: "1px solid #ccc", padding: "4px", backgroundColor: "#fff" }}>
-                    {EMOJI_PRESETS.map((em) => (
-                      <span 
-                        key={em} 
-                        onClick={() => handleAddEmoji(em)}
-                        style={{ fontSize: "18px", cursor: "pointer", textAlign: "center" }}
-                      >
-                        {em}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="field-row-stacked" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label htmlFor="wizard-mood" style={{ fontWeight: "bold", fontSize: "13px" }}>Current Mood Emoticon:</label>
-                  <select 
-                    id="wizard-mood"
-                    value={mood}
-                    onChange={(e) => setMood(e.target.value)}
-                    style={{ width: "100%" }}
-                  >
-                    <option>Chillin' 😎</option>
-                    <option>Excited ⚡</option>
-                    <option>Crushing 😍</option>
-                    <option>Mellow 🎧</option>
-                    <option>Melancholy 🌧️</option>
-                    <option>Goth Emo 🖤</option>
-                    <option>Ready to Party 🍹</option>
-                  </select>
-                </div>
-                <div className="field-row-stacked" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label htmlFor="wizard-bio" style={{ fontWeight: "bold", fontSize: "13px" }}>asl Profile Bio:</label>
-                  <textarea 
-                    id="wizard-bio"
-                    rows="3"
-                    placeholder="Write something about yourself or your night out..."
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    style={{ width: "100%", fontFamily: "Arial, sans-serif", fontSize: "14px" }}
-                  />
-                </div>
-                <div className="field-row-stacked" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label htmlFor="wizard-theme" style={{ fontWeight: "bold", fontSize: "13px" }}>Profile Theme Style Preset:</label>
-                  <select 
-                    id="wizard-theme"
-                    value={profileTheme}
-                    onChange={(e) => setProfileTheme(e.target.value)}
-                    style={{ width: "100%" }}
-                  >
-                    <option value="classic">Classic asl (Blue/Pink)</option>
-                    <option value="glitter">Pink Glitter & Hearts 💖</option>
-                    <option value="cyberpunk">Cyberpunk CRT (Black/Neon Green)</option>
-                    <option value="sunset">Retro Sunset Gradient 🌅</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div>
-              <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", color: "#003399" }}>Step 5: Confirm Installation</h3>
+              <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", color: "#003399" }}>Step 4: Confirm Installation</h3>
               <p style={{ margin: "0 0 12px 0", fontSize: "13px", lineHeight: "1.4", color: "#555" }}>
                 Your connection report is compiled and ready to write to the Firestore board. Review the properties below:
               </p>
@@ -472,7 +399,6 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null }) {
               </div>
             </div>
           )}
-
         </div>
 
         {/* Error notifications */}
@@ -486,15 +412,15 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null }) {
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", borderTop: "1px solid #eee", paddingTop: "12px", marginTop: "12px" }}>
           <button 
             onClick={handleBack} 
-            disabled={step === 1}
+            disabled={step === 1 || isModerating}
             style={{ minHeight: "44px", cursor: "pointer" }}
           >
             &lt; Back
           </button>
           
-          {step < 5 ? (
-            <button onClick={handleNext} style={{ minHeight: "44px", cursor: "pointer" }}>
-              Next &gt;
+          {step < 4 ? (
+            <button onClick={handleNext} disabled={isModerating} style={{ minHeight: "44px", cursor: "pointer" }}>
+              {isModerating ? "Checking..." : "Next >"}
             </button>
           ) : (
             <button onClick={handleFinish} className="default" style={{ minHeight: "44px", cursor: "pointer", backgroundColor: "#ffcc99", color: "#cc6600", fontWeight: "bold" }}>
