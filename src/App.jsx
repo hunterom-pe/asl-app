@@ -901,13 +901,13 @@ export default function App() {
             Home
           </span>
           <span 
-            className={`myspace-nav-link ${["city", "bar", "feed"].includes(navigationScreen) ? "active" : ""}`} 
+            className={`myspace-nav-link ${["city", "bar", "feed", "post"].includes(navigationScreen) ? "active" : ""}`} 
             onClick={() => {
               setNavigationScreen("city");
               setSelectedProfileUser(null);
             }}
           >
-            Find
+            Post
           </span>
           {isLoggedIn ? (
             <>
@@ -931,15 +931,6 @@ export default function App() {
                     {inboundClaimsCount}
                   </span>
                 )}
-              </span>
-              <span 
-                className={`myspace-nav-link ${navigationScreen === "post" ? "active" : ""}`} 
-                onClick={() => runWithAuthenticationCheck(() => {
-                  setNavigationScreen("post");
-                  setSelectedProfileUser(null);
-                })}
-              >
-                Post
               </span>
               <span className="myspace-nav-link" onClick={handleLogout}>Logout</span>
             </>
