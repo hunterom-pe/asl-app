@@ -111,6 +111,7 @@ export default function App() {
   const [globalActivePosts, setGlobalActivePosts] = useState([]);
   const [feedTab, setFeedTab] = useState("radar");
   const [inboundClaimsCount, setInboundClaimsCount] = useState(0);
+  const [favoriters, setFavoriters] = useState([]);
 
   // Bar search states
   const [barSearchQuery, setBarSearchQuery] = useState("");
@@ -551,6 +552,29 @@ export default function App() {
     });
     return () => unsub();
   }, [currentUser]);
+
+  // 2c. Subscribe to users who recently favorited the selected venue
+  useEffect(() => {
+    if (!selectedVenue) {
+      setFavoriters([]);
+      return;
+    }
+
+    const unsub = dbOnSnapshot("users", [], (snapshot) => {
+      const list = [];
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.favorited_bars && data.favorited_bars.includes(selectedVenue.fsq_id)) {
+          list.push({ uid: doc.id, ...data });
+        }
+      });
+      // Sort by activity/login/createdAt proxy to show recently active fans
+      list.sort((a, b) => (b.lastLogin || b.createdAt || 0) - (a.lastLogin || a.createdAt || 0));
+      setFavoriters(list.slice(0, 4));
+    });
+
+    return () => unsub();
+  }, [selectedVenue]);
 
 
 
@@ -1958,9 +1982,9 @@ export default function App() {
           <div className="myspace-columns">
             {/* Left Profile Column */}
             <div className="myspace-left-col">
-              <h2 style={{ margin: "0 0 12px 0", color: "#000", fontSize: "28px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <h2 style={{ margin: "0 0 6px 0", color: "#000", fontSize: "36px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", lineHeight: "1.1" }}>
                 <span>{selectedVenue.name}</span>
-                <span style={{ fontSize: "26px" }}>🍹</span>
+                <span style={{ fontSize: "32px" }}>🍹</span>
               </h2>
 
               <div className="profile-details-table">
@@ -1970,8 +1994,6 @@ export default function App() {
                 <p><strong>Status:</strong> Active Connection</p>
               </div>
 
-              {/* Music Player */}
-              <MySpaceMusicPlayer spotifyTrackUri={selectedVenue.spotify_track_uri || "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g"} />
               {/* Contact Links Box */}
               <div className="contact-box">
                 <div className="contact-box-header">Contacting {selectedVenue.name}</div>
@@ -2011,86 +2033,40 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Top Friends Grid */}
+              {/* Dynamic list of people who favorited the bar */}
               <div className="top8-container" style={{ marginTop: "10px" }}>
                 <div className="section-header-orange" style={{ margin: 0 }}>
-                  {selectedVenue.name}'s Friend Space
+                  People Who Favorite {selectedVenue.name}
                 </div>
                 <div style={{ fontSize: "12px", margin: "4px 0", fontWeight: "bold" }}>
-                  {selectedVenue.name} has {venuePosts.length + 2} friends.
+                  {selectedVenue.name} has {favoriters.length} fan{favoriters.length !== 1 ? "s" : ""}.
                 </div>
-                <div className="top8-grid">
-                  {/* Tom */}
-                  <div className="top8-friend" onClick={() => handleOpenProfile("tom", {
-                    username: "Tom",
-                    mood: "Friendly 🙂",
-                    bio: "Co-founder of asl. Let me know if you have any questions!",
-                    profileTheme: "classic",
-                    emoji_avatar: "👥🥃💖"
-                  })}>
-                    <div className="friend-avatar-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span className="friend-avatar" style={{ fontSize: "16px" }}>👥🥃💖</span>
-                    </div>
-                    <span className="friend-name">Tom</span>
+                {favoriters.length === 0 ? (
+                  <div style={{ padding: "12px", fontSize: "11px", fontStyle: "italic", color: "#666", backgroundColor: "#fff", border: "1px solid #ddd", borderRadius: "2px" }}>
+                    No one has favorited this bar yet. Be the first!
                   </div>
-
-                  {/* Gracie (if Phoenix) */}
-                  {selectedCity === "Phoenix" && (
-                    <div className="top8-friend" onClick={() => handleOpenProfile("gracie", {
-                      username: "Gracie",
-                      mood: "Pouring Drinks 🍹",
-                      bio: "Welcome to Gracie's Tax Bar address: 711 N 7th Ave Phoenix, AZ 85007. Come hang out!",
-                      profileTheme: "sunset",
-                      emoji_avatar: "🍹🤠✨"
-                    })}>
-                      <div className="friend-avatar-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span className="friend-avatar" style={{ fontSize: "16px" }}>🍹🤠✨</span>
+                ) : (
+                  <div className="top8-grid">
+                    {favoriters.map(person => (
+                      <div 
+                        key={person.uid} 
+                        className="top8-friend" 
+                        onClick={() => handleOpenProfile(person.uid, person)}
+                      >
+                        <div className="friend-avatar-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span className="friend-avatar" style={{ fontSize: "16px" }}>{person.emoji_avatar || "👥🥃💖"}</span>
+                        </div>
+                        <span className="friend-name">{person.username || "Anon"}</span>
                       </div>
-                      <span className="friend-name">Gracie</span>
-                    </div>
-                  )}
-
-                  {/* Render posters in Top 8 */}
-                  {venuePosts.slice(0, 6).map(post => (
-                    <div 
-                      key={post.id} 
-                      className="top8-friend" 
-                      onClick={() => handleOpenProfile(post.userId, {
-                        username: post.username || "Anonymous Connection",
-                        mood: post.mood || "Chillin' 😎",
-                        bio: post.bio || "Just browsing the local spots.",
-                        profileTheme: post.profileTheme || "classic",
-                        emoji_avatar: post.emoji_avatar || "👥🥃💖"
-                      })}
-                    >
-                      <div className="friend-avatar-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span className="friend-avatar" style={{ fontSize: "16px" }}>{post.emoji_avatar || "👥🥃💖"}</span>
-                      </div>
-                      <span className="friend-name">{post.username || "Anon"}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Right Profile Column */}
             <div className="myspace-right-col">
-              <div className="section-header-orange" style={{ margin: 0, fontSize: "16px !important" }}>
-                {selectedVenue.name}'s Latest Updates
-              </div>
-
-              <div className="profile-details-table" style={{ backgroundColor: "#fff", padding: "10px" }}>
-                <h4 style={{ margin: "0 0 5px 0", color: "#cc6600" }}>About {selectedVenue.name}:</h4>
-                <p style={{ margin: 0, fontSize: "13px !important" }}>
-                  A popular neighborhood spot. Leave a comment below if you spotted someone special here.
-                </p>
-                <h4 style={{ margin: "10px 0 5px 0", color: "#cc6600" }}>Who we'd like to meet:</h4>
-                <p style={{ margin: 0, fontSize: "13px !important" }}>
-                  Connect with local buddies, regulars, and missed encounters.
-                </p>
-              </div>
-
-              <div className="section-header-orange" style={{ margin: "10px 0 0 0" }}>
+              <div className="section-header-orange" style={{ margin: 0 }}>
                 {selectedVenue.name}'s Missed Connections Wall
               </div>
 
