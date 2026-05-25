@@ -215,8 +215,8 @@ export default function MySpaceMusicPlayer({
   const progressPercent = (currentTime / trackInfo.duration) * 100;
 
   return (
-    <div className="myspace-player-widget beveled-box" style={{ padding: "8px", border: "1px solid #ff99cc" }}>
-      <div className="player-inner" style={{ backgroundColor: "#003399" }}>
+    <div className="myspace-player-widget beveled-box">
+      <div className="player-inner">
         
         {/* Headless Audio Mount Container */}
         <div 
@@ -234,7 +234,7 @@ export default function MySpaceMusicPlayer({
         </div>
 
         {/* LCD Screen */}
-        <div className="player-screen" style={{ backgroundColor: "#000", color: "#ff66cc", position: "relative" }}>
+        <div className="player-screen" style={{ position: "relative" }}>
           
           {/* Autoplay Compliance Gate Blinking Overlay */}
           {!audioInitialized && (
@@ -245,8 +245,8 @@ export default function MySpaceMusicPlayer({
                 left: 0,
                 width: "100%",
                 height: "100%",
-                backgroundColor: "#000",
-                color: "#ff007f",
+                backgroundColor: "var(--player-screen-bg)",
+                color: "var(--player-accent)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -265,21 +265,20 @@ export default function MySpaceMusicPlayer({
             </div>
           )}
 
-          <div className="track-info" style={{ borderBottom: "1px dashed #ff007f" }}>
-            <span className="lcd-text scrolling-title" style={{ color: "#ff66cc" }}>
+          <div className="track-info">
+            <span className="lcd-text scrolling-title">
               🎧 {trackInfo.artist} - {trackInfo.title}
             </span>
           </div>
-          <div className="playback-stats" style={{ color: "#ff99cc" }}>
+          <div className="playback-stats">
             <span className="time-display">{formatTime(currentTime)} / {trackInfo.durationStr}</span>
-            <span className="kbps-label" style={{ color: "#ff007f" }}>56Kbps</span>
+            <span className="kbps-label">56Kbps</span>
           </div>
-          <div className="visualizer-container" style={{ border: "1px solid #ff007f" }}>
+          <div className="visualizer-container">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((barId) => (
               <div 
                 key={barId} 
                 className={`visualizer-bar bar-${barId} ${isPlaying ? "playing" : ""}`}
-                style={{ backgroundColor: "#ff66cc" }}
               />
             ))}
           </div>
@@ -296,7 +295,7 @@ export default function MySpaceMusicPlayer({
               style={{ flex: 1 }} 
               title="Play"
             >
-              <svg width="12" height="12" viewBox="0 0 10 10" style={{ fill: isPlaying ? "#39ff14" : "#ff66cc", pointerEvents: "none" }}>
+              <svg width="12" height="12" viewBox="0 0 10 10" style={{ fill: isPlaying ? "var(--player-btn-active)" : "var(--player-btn-inactive)", pointerEvents: "none" }}>
                 <path d="M2,1 L8,5 L2,9 Z" />
               </svg>
             </button>
@@ -306,7 +305,7 @@ export default function MySpaceMusicPlayer({
               style={{ flex: 1 }} 
               title="Pause"
             >
-              <svg width="12" height="12" viewBox="0 0 10 10" style={{ fill: !isPlaying ? "#39ff14" : "#ff66cc", pointerEvents: "none" }}>
+              <svg width="12" height="12" viewBox="0 0 10 10" style={{ fill: !isPlaying ? "var(--player-btn-active)" : "var(--player-btn-inactive)", pointerEvents: "none" }}>
                 <path d="M2,1 H4 V9 H2 Z M6,1 H8 V9 H6 Z" />
               </svg>
             </button>
@@ -315,7 +314,7 @@ export default function MySpaceMusicPlayer({
           
           <div className="progress-bar-container">
             <div className="progress-bar-track">
-              <div className="progress-bar-fill" style={{ width: `${progressPercent}%`, background: "linear-gradient(90deg, #ff66cc 0%, #ff007f 100%)" }} />
+              <div className="progress-bar-fill" style={{ width: `${progressPercent}%`, background: "var(--player-progress-fill)" }} />
             </div>
           </div>
         </div>

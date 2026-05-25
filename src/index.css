@@ -745,13 +745,27 @@ legend {
   margin-bottom: 12px;
   width: 100%;
   box-sizing: border-box;
+
+  /* Default/Classic theme variables */
+  --player-border: #ff99cc;
+  --player-inner-bg: #003399;
+  --player-screen-bg: #000000;
+  --player-screen-text: #ff66cc;
+  --player-screen-subtext: #ff99cc;
+  --player-accent: #ff007f;
+  --player-btn-active: #39ff14;
+  --player-btn-inactive: #ff66cc;
+  --player-progress-fill: linear-gradient(90deg, #ff66cc 0%, #ff007f 100%);
+  --player-visualizer-bar: #ff66cc;
+
+  border: 1px solid var(--player-border) !important;
 }
 
 .player-inner {
   display: flex;
   flex-direction: row;
   gap: 10px;
-  background-color: #555555;
+  background-color: var(--player-inner-bg) !important;
   padding: 8px;
   border: 2px inset #fff;
   border-radius: 4px;
@@ -765,11 +779,11 @@ legend {
 
 .player-screen {
   flex: 1.2;
-  background-color: #001100;
+  background-color: var(--player-screen-bg) !important;
   border: 2px inset #000;
   border-radius: 2px;
   padding: 6px;
-  color: #33ff33;
+  color: var(--player-screen-text) !important;
   font-family: "Courier New", Courier, monospace;
   display: flex;
   flex-direction: column;
@@ -784,7 +798,7 @@ legend {
   white-space: nowrap;
   position: relative;
   height: 18px;
-  border-bottom: 1px dashed #225522;
+  border-bottom: 1px dashed var(--player-accent) !important;
 }
 
 .scrolling-title {
@@ -802,12 +816,12 @@ legend {
   display: flex;
   justify-content: space-between;
   font-size: 11px !important;
-  color: #22dd22;
+  color: var(--player-screen-subtext) !important;
   margin-top: 4px;
 }
 
 .kbps-label {
-  color: #118811;
+  color: var(--player-accent) !important;
   font-weight: bold;
 }
 
@@ -820,13 +834,13 @@ legend {
   background-color: #000500;
   padding: 2px 4px;
   border-radius: 1px;
-  border: 1px solid #114411;
+  border: 1px solid var(--player-accent) !important;
 }
 
 .visualizer-bar {
   width: 7%;
   height: 15%;
-  background-color: #33ff33;
+  background-color: var(--player-visualizer-bar) !important;
   border-radius: 1px 1px 0 0;
   transition: height 0.1s ease;
 }
@@ -1121,11 +1135,92 @@ legend {
    THEME OVERRIDES
    ========================================== */
 
+/* Profile Edit Card & Inputs styling */
+.profile-edit-card {
+  border: 1px solid #ff99cc;
+  background-color: #ffffff;
+  padding: 8px;
+  color: #333333;
+}
+
+.emoji-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  width: 100%;
+  height: 220px;
+  overflow-y: scroll;
+  border: 1px inset #ccc;
+  padding: 4px;
+  background-color: #fafafa;
+  box-sizing: border-box;
+}
+
+.selected-emoji-btn {
+  font-size: 36px;
+  cursor: pointer;
+  border: 1px inset #999;
+  padding: 4px;
+  background-color: #f0f0f0;
+  border-radius: 2px;
+}
+
+.profile-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px !important;
+  font-size: 10px !important;
+  cursor: pointer;
+  height: 18px;
+  min-height: 18px !important;
+  background-color: #dfdfdf;
+  color: #000;
+  border: 1px solid #808080;
+  font-weight: bold;
+  font-family: monospace;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.favorited-bar-item {
+  padding: 6px 8px;
+  border: 1px solid #ffe6f2;
+  background-color: #fff0f5;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: #003399;
+  text-decoration: underline;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.favorited-bar-item span:last-child {
+  font-size: 10px;
+  color: #666;
+  text-decoration: none;
+}
+
 /* 1. Glitter Theme */
+.myspace-theme-glitter {
+  --player-border: #ff66cc;
+  --player-inner-bg: #ff007f;
+  --player-screen-bg: #000000;
+  --player-screen-text: #ff66cc;
+  --player-screen-subtext: #ffb6c1;
+  --player-accent: #ff007f;
+  --player-btn-active: #39ff14;
+  --player-btn-inactive: #ff66cc;
+  --player-progress-fill: linear-gradient(90deg, #ff66cc 0%, #ff007f 100%);
+  --player-visualizer-bar: #ff66cc;
+}
+
 .myspace-theme-glitter .window {
   border: 3px solid #ff66cc !important;
 }
 
+.myspace-theme-glitter .title-bar,
 .myspace-theme-glitter .window-title {
   background: linear-gradient(90deg, #ff007f 0%, #ff66cc 100%) !important;
 }
@@ -1152,15 +1247,103 @@ legend {
   color: #cc0066 !important;
 }
 
+.myspace-theme-glitter .profile-edit-card {
+  border: 1px solid #ff66cc !important;
+  background-color: #fff0f5 !important;
+  color: #333333 !important;
+}
+
+.myspace-theme-glitter input[type="text"],
+.myspace-theme-glitter textarea,
+.myspace-theme-glitter select {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+  border: 1px solid #ff66cc !important;
+}
+
+.myspace-theme-glitter .myspace-profile-body button {
+  background-color: #ff66cc !important;
+  color: #ffffff !important;
+  border: 2px outset #ff007f !important;
+  font-weight: bold;
+}
+.myspace-theme-glitter .myspace-profile-body button:active {
+  border-style: inset !important;
+}
+
+.myspace-theme-glitter .favorited-bar-item {
+  border-color: #ff66cc !important;
+  background-color: #fff0f5 !important;
+  color: #cc0066 !important;
+}
+.myspace-theme-glitter .favorited-bar-item span:last-child {
+  color: #ff007f !important;
+}
+
+.myspace-theme-glitter .emoji-presets-grid {
+  border: 1px solid #ff66cc !important;
+  background-color: #fff0f5 !important;
+}
+.myspace-theme-glitter .selected-emoji-btn {
+  background-color: #fff0f5 !important;
+  border: 1px inset #ff66cc !important;
+}
+.myspace-theme-glitter .profile-help-btn {
+  background-color: #fff0f5 !important;
+  color: #cc0066 !important;
+  border: 1px solid #ff66cc !important;
+}
+.myspace-theme-glitter .profile-headline {
+  color: #ff007f !important;
+  font-weight: bold;
+}
+.myspace-theme-glitter .friend-name {
+  color: #cc0066 !important;
+}
+.myspace-theme-glitter .profile-top-section {
+  border-bottom: 2px solid #ff66cc !important;
+}
+
 /* 2. Cyberpunk Theme */
+.myspace-theme-cyberpunk {
+  --player-border: #00ff00;
+  --player-inner-bg: #000000;
+  --player-screen-bg: #050505;
+  --player-screen-text: #00ff00;
+  --player-screen-subtext: #008800;
+  --player-accent: #00ff00;
+  --player-btn-active: #39ff14;
+  --player-btn-inactive: #00ff00;
+  --player-progress-fill: linear-gradient(90deg, #008800 0%, #00ff00 100%);
+  --player-visualizer-bar: #00ff00;
+}
+
 .myspace-theme-cyberpunk .window {
   border: 3px solid #00ff00 !important;
 }
 
+.myspace-theme-cyberpunk .title-bar,
 .myspace-theme-cyberpunk .window-title {
   background: #000000 !important;
   color: #00ff00 !important;
   border-bottom: 2px solid #00ff00 !important;
+}
+.myspace-theme-cyberpunk .title-bar-text {
+  color: #00ff00 !important;
+}
+.myspace-theme-cyberpunk .title-bar button {
+  background-color: #000000 !important;
+  border: 1px solid #00ff00 !important;
+  min-height: 14px !important;
+  min-width: 16px !important;
+  padding: 0 !important;
+}
+.myspace-theme-cyberpunk .title-bar button::after {
+  content: "x";
+  color: #00ff00;
+  font-family: monospace;
+  font-size: 10px;
+  display: block;
 }
 
 .myspace-theme-cyberpunk .myspace-profile-body {
@@ -1223,13 +1406,103 @@ legend {
   color: #00ff00 !important;
 }
 
+.myspace-theme-cyberpunk .profile-edit-card {
+  border: 1px solid #00ff00 !important;
+  background-color: #050505 !important;
+  color: #00ff00 !important;
+}
+
+.myspace-theme-cyberpunk input[type="text"],
+.myspace-theme-cyberpunk textarea,
+.myspace-theme-cyberpunk select {
+  background-color: #000000 !important;
+  color: #00ff00 !important;
+  border: 1px solid #00ff00 !important;
+}
+.myspace-theme-cyberpunk input[type="text"]::placeholder,
+.myspace-theme-cyberpunk textarea::placeholder {
+  color: #004400 !important;
+}
+
+.myspace-theme-cyberpunk .myspace-profile-body button {
+  background-color: #000000 !important;
+  color: #00ff00 !important;
+  border: 1px solid #00ff00 !important;
+  font-family: monospace;
+}
+.myspace-theme-cyberpunk .myspace-profile-body button:hover {
+  background-color: #00ff00 !important;
+  color: #000000 !important;
+}
+
+.myspace-theme-cyberpunk .favorited-bar-item {
+  border-color: #00ff00 !important;
+  background-color: #001100 !important;
+  color: #00ff00 !important;
+}
+.myspace-theme-cyberpunk .favorited-bar-item span:last-child {
+  color: #00aa00 !important;
+}
+
+.myspace-theme-cyberpunk .emoji-presets-grid {
+  border: 1px solid #00ff00 !important;
+  background-color: #000000 !important;
+}
+.myspace-theme-cyberpunk .selected-emoji-btn {
+  background-color: #111111 !important;
+  border: 1px inset #00ff00 !important;
+}
+.myspace-theme-cyberpunk .profile-help-btn {
+  background-color: #000000 !important;
+  color: #00ff00 !important;
+  border: 1px solid #00ff00 !important;
+}
+.myspace-theme-cyberpunk .profile-headline {
+  color: #00ff00 !important;
+  opacity: 0.8;
+}
+.myspace-theme-cyberpunk .profile-top-section {
+  border-bottom: 2px solid #00ff00 !important;
+}
+
 /* 3. Sunset Theme */
+.myspace-theme-sunset {
+  --player-border: #ff4500;
+  --player-inner-bg: #2b1055;
+  --player-screen-bg: rgba(43, 16, 85, 0.8);
+  --player-screen-text: #ffdab9;
+  --player-screen-subtext: #ff8c00;
+  --player-accent: #ff4500;
+  --player-btn-active: #ff8c00;
+  --player-btn-inactive: #ffdab9;
+  --player-progress-fill: linear-gradient(90deg, #ff8c00 0%, #ffdab9 100%);
+  --player-visualizer-bar: #ff8c00;
+}
+
 .myspace-theme-sunset .window {
   border: 3px solid #ff4500 !important;
 }
 
+.myspace-theme-sunset .title-bar,
 .myspace-theme-sunset .window-title {
   background: linear-gradient(90deg, #ff4500 0%, #ff8c00 100%) !important;
+}
+.myspace-theme-sunset .title-bar-text {
+  color: #ffffff !important;
+}
+.myspace-theme-sunset .title-bar button {
+  background-color: rgba(43, 16, 85, 0.9) !important;
+  border: 1px solid #ff4500 !important;
+  min-height: 14px !important;
+  min-width: 16px !important;
+  padding: 0 !important;
+}
+.myspace-theme-sunset .title-bar button::after {
+  content: "x";
+  color: #ffdab9;
+  font-family: monospace;
+  font-size: 10px;
+  display: block;
 }
 
 .myspace-theme-sunset .myspace-profile-body {
@@ -1292,6 +1565,79 @@ legend {
 
 .myspace-theme-sunset .friend-name {
   color: #ffdab9 !important;
+}
+
+.myspace-theme-sunset .profile-edit-card {
+  border: 1px solid #ff4500 !important;
+  background-color: rgba(43, 16, 85, 0.9) !important;
+  color: #ffffff !important;
+}
+
+.myspace-theme-sunset input[type="text"],
+.myspace-theme-sunset textarea,
+.myspace-theme-sunset select {
+  background-color: rgba(43, 16, 85, 0.9) !important;
+  color: #ffffff !important;
+  border: 1px solid #ff4500 !important;
+}
+.myspace-theme-sunset input[type="text"]::placeholder,
+.myspace-theme-sunset textarea::placeholder {
+  color: #ffdab9 !important;
+  opacity: 0.6;
+}
+
+.myspace-theme-sunset .myspace-profile-body button {
+  background-color: rgba(43, 16, 85, 0.9) !important;
+  color: #ffdab9 !important;
+  border: 1px solid #ff4500 !important;
+}
+.myspace-theme-sunset .myspace-profile-body button:hover {
+  background-color: #ff8c00 !important;
+  color: #2b1055 !important;
+}
+
+.myspace-theme-sunset .favorited-bar-item {
+  border-color: #ff4500 !important;
+  background-color: rgba(43, 16, 85, 0.9) !important;
+  color: #ffdab9 !important;
+}
+.myspace-theme-sunset .favorited-bar-item span:last-child {
+  color: #ff8c00 !important;
+}
+
+.myspace-theme-sunset .emoji-presets-grid {
+  border: 1px solid #ff4500 !important;
+  background-color: rgba(43, 16, 85, 0.9) !important;
+}
+.myspace-theme-sunset .selected-emoji-btn {
+  background-color: rgba(43, 16, 85, 0.9) !important;
+  border: 1px inset #ff4500 !important;
+}
+.myspace-theme-sunset .profile-help-btn {
+  background-color: rgba(43, 16, 85, 0.9) !important;
+  color: #ffdab9 !important;
+  border: 1px solid #ff4500 !important;
+}
+.myspace-theme-sunset .profile-top-section {
+  border-bottom: 2px solid #ff4500 !important;
+}
+
+/* 4. Classic Theme Overrides */
+.myspace-theme-classic input[type="text"],
+.myspace-theme-classic textarea,
+.myspace-theme-classic select {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+  border: 1px solid #ff99cc !important;
+}
+.myspace-theme-classic .myspace-profile-body button {
+  background-color: #dfdfdf !important;
+  color: #000000 !important;
+  border: 2px solid !important;
+  border-color: #fff #808080 #808080 #fff !important;
+}
+.myspace-theme-classic .myspace-profile-body button:active {
+  border-color: #808080 #fff #fff #808080 !important;
 }
 
 /* Retro Blink Animation Slogan */

@@ -255,8 +255,8 @@ export default function MySpaceProfileDialog({
 
             {/* Emoji Avatar Customizer — edit mode only */}
             {isEditing && (
-              <div style={{ border: "1px solid #ff99cc", backgroundColor: "#fff", padding: "8px", marginBottom: "8px" }}>
-                <div style={{ fontSize: "11px", fontWeight: "bold", marginBottom: "6px", color: "#333" }}>Customize Avatar (pick exactly 3):</div>
+              <div className="profile-edit-card" style={{ marginBottom: "8px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "bold", marginBottom: "6px", color: "inherit" }}>Customize Avatar (pick exactly 3):</div>
                 
                 {/* Currently selected emojis */}
                 <div style={{ display: "flex", gap: "6px", marginBottom: "8px", minHeight: "48px", alignItems: "center" }}>
@@ -264,7 +264,8 @@ export default function MySpaceProfileDialog({
                     <span 
                       key={idx} 
                       onClick={() => handleRemoveEmojiAtIndex(idx)}
-                      style={{ fontSize: "36px", cursor: "pointer", border: "1px inset #999", padding: "4px", backgroundColor: "#f0f0f0", borderRadius: "2px" }}
+                      className="selected-emoji-btn"
+                      style={{ fontSize: "36px" }}
                       title="Click to remove"
                     >
                       {em}
@@ -279,18 +280,7 @@ export default function MySpaceProfileDialog({
                 </div>
 
                 {/* Large emoji presets grid */}
-                <div style={{ 
-                  display: "grid", 
-                  gridTemplateColumns: "repeat(8, 1fr)", 
-                  gap: "3px", 
-                  width: "100%", 
-                  height: "220px", 
-                  overflowY: "scroll", 
-                  border: "1px inset #ccc", 
-                  padding: "4px", 
-                  backgroundColor: "#fafafa",
-                  boxSizing: "border-box"
-                }}>
+                <div className="emoji-presets-grid">
                   {EMOJI_PRESETS.map((em, i) => (
                     <span 
                       key={`${em}-${i}`}
@@ -315,10 +305,10 @@ export default function MySpaceProfileDialog({
               </div>
             )}
 
-            <div className="profile-details-table" style={isEditing ? { border: "1px solid #ff99cc", backgroundColor: "#fff", padding: "6px" } : {}}>
+            <div className={`profile-details-table ${isEditing ? "profile-edit-card" : ""}`} style={{ padding: "6px" }}>
               {isEditing ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px", margin: "4px 0" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Mood:</label>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "inherit" }}>Mood:</label>
                   <select 
                     value={editMood} 
                     onChange={(e) => setEditMood(e.target.value)} 
@@ -361,8 +351,8 @@ export default function MySpaceProfileDialog({
             {/* Custom Theme Selector (only visible in edit mode) */}
             {isEditing && (
               <>
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px", margin: "4px 0", padding: "6px", border: "1px solid #ff99cc", backgroundColor: "#fff" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Profile Theme:</label>
+                <div className="profile-edit-card" style={{ display: "flex", flexDirection: "column", gap: "2px", margin: "4px 0" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "inherit" }}>Profile Theme:</label>
                   <select 
                     value={editProfileTheme} 
                     onChange={(e) => setEditProfileTheme(e.target.value)}
@@ -374,30 +364,14 @@ export default function MySpaceProfileDialog({
                     <option value="sunset">Sunset 🌅</option>
                   </select>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", margin: "4px 0", padding: "6px", border: "1px solid #ff99cc", backgroundColor: "#fff" }}>
+                <div className="profile-edit-card" style={{ display: "flex", flexDirection: "column", gap: "8px", margin: "4px 0" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Spotify Track URI:</label>
+                      <label style={{ fontSize: "11px", fontWeight: "bold", color: "inherit" }}>Spotify Track URI:</label>
                       <button 
                         type="button"
                         onClick={() => setShowHelpModal(true)} 
-                        style={{ 
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          padding: "0 6px", 
-                          fontSize: "10px", 
-                          cursor: "pointer", 
-                          height: "18px", 
-                          minHeight: "18px",
-                          backgroundColor: "#dfdfdf",
-                          color: "#000",
-                          border: "1px solid #808080",
-                          fontWeight: "bold",
-                          fontFamily: "monospace",
-                          lineHeight: 1,
-                          boxSizing: "border-box"
-                        }}
+                        className="profile-help-btn"
                       >
                         [ ? ]
                       </button>
@@ -410,29 +384,29 @@ export default function MySpaceProfileDialog({
                         if (profileError) setProfileError("");
                       }}
                       placeholder="e.g. spotify:track:4PTG3Z6ehGkBF3zI7YSp6g"
-                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px", color: "#000", backgroundColor: "#fff" }}
+                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px" }}
                     />
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Display Song Title (Optional):</label>
+                    <label style={{ fontSize: "11px", fontWeight: "bold", color: "inherit" }}>Display Song Title (Optional):</label>
                     <input 
                       type="text" 
                       value={editSpotifySongTitle}
                       onChange={(e) => setEditSpotifySongTitle(e.target.value)}
                       placeholder="e.g. Hum of Hurt"
-                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px", color: "#000", backgroundColor: "#fff" }}
+                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px" }}
                     />
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Display Artist Name (Optional):</label>
+                    <label style={{ fontSize: "11px", fontWeight: "bold", color: "inherit" }}>Display Artist Name (Optional):</label>
                     <input 
                       type="text" 
                       value={editSpotifyArtistName}
                       onChange={(e) => setEditSpotifyArtistName(e.target.value)}
                       placeholder="e.g. Converge"
-                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px", color: "#000", backgroundColor: "#fff" }}
+                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px" }}
                     />
                   </div>
 
@@ -566,7 +540,7 @@ export default function MySpaceProfileDialog({
             </div>
 
             {/* Favorited Bars Section */}
-            <div className="beveled-box" style={{ marginTop: "12px", padding: "6px", backgroundColor: "#ffffff", border: "1px solid #ff99cc" }}>
+            <div className="beveled-box" style={{ marginTop: "12px", padding: "6px", border: "1px solid var(--player-border)" }}>
               <div className="section-header-orange" style={{ margin: "0 0 8px 0" }}>{username}'s Favorited Bars</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {favoritedVenueList.length === 0 ? (
@@ -578,23 +552,11 @@ export default function MySpaceProfileDialog({
                     <div 
                       key={venue.fsq_id}
                       onClick={() => onSelectVenue && onSelectVenue(venue.fsq_id)}
-                      style={{
-                        padding: "6px 8px",
-                        border: "1px solid #ffe6f2",
-                        backgroundColor: "#fff0f5",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        fontWeight: "bold",
-                        color: "#003399",
-                        textDecoration: "underline",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center"
-                      }}
+                      className="favorited-bar-item"
                       title="Click to view bar details"
                     >
                       <span>🍹 {venue.name}</span>
-                      <span style={{ fontSize: "10px", color: "#666", textDecoration: "none" }}>{venue.zone} ➡️</span>
+                      <span>{venue.zone} ➡️</span>
                     </div>
                   ))
                 )}
