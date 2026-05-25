@@ -110,5 +110,22 @@ service cloud.firestore {
         allow update, delete: if false; // Messages are immutable once sent
       }
     }
+
+    // Appeals Collection
+    match /appeals/{appealId} {
+      allow read: if isFullyAuthenticated();
+      allow create: if isFullyAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false; // Appeals are immutable once submitted
+    }
+
+    // SysOp Audit Log — write-once, no reads from client
+    // Authenticated clients can append records; only Cloud Functions / Admin SDK can read them
+    match /admin_audit_log/{logId} {
+      allow create: if isFullyAuthenticated()
+                    && request.resource.data.operatorUid == request.auth.uid
+                    && request.resource.data.action is string
+                    && request.resource.data.timestamp is number;
+      allow read, update, delete: if false; // Tamper-proof from client side
+    }
   }
 }

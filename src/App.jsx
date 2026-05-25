@@ -86,6 +86,7 @@ export default function App() {
   // Connection throttle & lockout states
   const [pendingClaims, setPendingClaims] = useState([]);
   const [showCertaintyModal, setShowCertaintyModal] = useState(null);
+  const [certaintyCountdown, setCertaintyCountdown] = useState(3);
   const [acceptedConnections, setAcceptedConnections] = useState([]);
 
   // Safety / strike warning states
@@ -195,23 +196,54 @@ export default function App() {
   }, [userDoc, hasShownStrike2]);
 
   // Track pending outbound connection claims for the One-and-Done limit
+  // Also runs a client-side TTL sweep: auto-deletes claims older than 48 hours
   useEffect(() => {
     if (!currentUser || currentUser.isAnonymous) {
       setPendingClaims([]);
       return;
     }
+    const TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
     const unsub = dbOnSnapshot("connections", [
       queryWhere("senderId", "==", currentUser.uid),
       queryWhere("status", "==", "pending")
     ], (snapshot) => {
       const claims = [];
+      const now = Date.now();
       snapshot.docs.forEach(doc => {
-        claims.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        const ts = data.timestamp || data.encounterTimestamp || 0;
+        // Auto-expire pending claims older than 48 hours
+        if (ts && (now - ts) > TTL_MS) {
+          dbDeleteDoc("connections", doc.id).catch(err =>
+            console.warn("TTL sweep: could not delete expired claim", doc.id, err)
+          );
+        } else {
+          claims.push({ id: doc.id, ...data });
+        }
       });
       setPendingClaims(claims);
     });
     return () => unsub();
   }, [currentUser]);
+
+  // 3-second countdown when Certainty Modal opens
+  useEffect(() => {
+    if (!showCertaintyModal) {
+      setCertaintyCountdown(3);
+      return;
+    }
+    setCertaintyCountdown(3);
+    const interval = setInterval(() => {
+      setCertaintyCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showCertaintyModal]);
 
   // Subscribe to accepted connections for the Friend Space
   useEffect(() => {
@@ -418,18 +450,35 @@ export default function App() {
         throw new Error(randomMsg);
       }
 
+      // ── Post Creation Cooldown (15 minutes) ─────────────────────────────
+      const COOLDOWN_MS = 15 * 60 * 1000;
+      const lastPostAt = userDoc?.lastPostAt || 0;
+      const timeSinceLast = Date.now() - lastPostAt;
+      if (timeSinceLast < COOLDOWN_MS) {
+        const minutesLeft = Math.ceil((COOLDOWN_MS - timeSinceLast) / 60000);
+        const cooldownMessages = [
+          `Whoa, slow down. The server daemon is still processing your last post. Try again in ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""}.`,
+          `Error 429: Too Many Posts. The database is still catching its breath. Wait ${minutesLeft} more minute${minutesLeft > 1 ? "s" : ""}, chief.`,
+          `Signal cooldown active. You posted too recently. The node enforces a 15-minute buffer between transmissions. ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""} remaining.`,
+          `Post rate limit exceeded. Even dial-up has a cooldown. Come back in ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""}.`
+        ];
+        throw new Error(cooldownMessages[Math.floor(Math.random() * cooldownMessages.length)]);
+      }
+
       await dbAddDoc("posts", {
         ...postData,
         userId: currentUser.uid
       });
 
       // Also update the user's profile card in the users collection
+      // Write lastPostAt timestamp for cooldown enforcement
       await dbSetDoc("users", currentUser.uid, {
         username: postData.username,
         mood: postData.mood,
         bio: postData.bio,
         profileTheme: postData.profileTheme,
-        emoji_avatar: postData.emoji_avatar
+        emoji_avatar: postData.emoji_avatar,
+        lastPostAt: Date.now()
       }, true);
 
       // Auto-navigate to the venue's feed
@@ -476,6 +525,13 @@ export default function App() {
   const handleSysopRestorePost = async (postId) => {
     try {
       await dbUpdateDoc("posts", postId, { status: "active" });
+      // SysOp Audit Trail — write every operator action
+      await dbAddDoc("admin_audit_log", {
+        action: "restore_post",
+        targetId: postId,
+        operatorUid: currentUser?.uid || "unknown",
+        timestamp: Date.now()
+      });
       alert("Post status restored to active.");
     } catch (err) {
       alert("Error restoring post: " + err.message);
@@ -487,7 +543,9 @@ export default function App() {
       // 1. Reset user flag count and banned status
       await dbUpdateDoc("users", appeal.userId, {
         flag_count: 0,
-        banned: false
+        banned: false,
+        isBanned: false,
+        reporterIds: []
       });
 
       // 2. Delete device UUID from blacklisted_devices if it's there
@@ -501,6 +559,16 @@ export default function App() {
 
       // 3. Delete the appeal document itself
       await dbDeleteDoc("appeals", appeal.id);
+
+      // SysOp Audit Trail — write every operator action
+      await dbAddDoc("admin_audit_log", {
+        action: "resolve_appeal",
+        targetId: appeal.userId,
+        appealId: appeal.id,
+        operatorUid: currentUser?.uid || "unknown",
+        timestamp: Date.now(),
+        details: { username: appeal.username || "unknown" }
+      });
       
       alert("User unbanned, flags reset, device unblacklisted.");
     } catch (err) {
@@ -665,6 +733,18 @@ export default function App() {
         throw new Error(randomRoast);
       }
 
+      // ── Daily Claim Throttle (max 3 signal claims per 24 hours) ──────────
+      const todayStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+      const claimDate = userDoc?.dailyClaimDate || "";
+      const claimCount = claimDate === todayStr ? (userDoc?.dailyClaimCount || 0) : 0;
+
+      if (claimCount >= 3) {
+        throw new Error(
+          "Daily Signal Limit Reached: You've already fired off 3 outbound claims today. " +
+          "The network enforces a 24-hour cooldown to keep the feed authentic. Try again tomorrow."
+        );
+      }
+
       await dbAddDoc("connections", {
         postId: showProofDialog.id,
         postText: showProofDialog.text,
@@ -674,6 +754,13 @@ export default function App() {
         proofText,
         status: "pending"
       });
+
+      // Increment the user's daily claim counter
+      await dbSetDoc("users", currentUser.uid, {
+        dailyClaimCount: claimCount + 1,
+        dailyClaimDate: todayStr
+      }, true);
+
       setShowProofDialog(null);
       setNavigationScreen(selectedVenue ? "feed" : "home");
       alert("Verification sent. Poster will review details.");
@@ -1854,6 +1941,11 @@ export default function App() {
                     </p>
                   </div>
                 </div>
+                {certaintyCountdown > 0 && (
+                  <p style={{ margin: "8px 0 0 0", fontSize: "11px", color: "#808080", textAlign: "center" }}>
+                    Please read the above carefully… ({certaintyCountdown})
+                  </p>
+                )}
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "10px" }}>
                   <button 
                     onClick={() => setShowCertaintyModal(null)} 
@@ -1863,13 +1955,20 @@ export default function App() {
                   </button>
                   <button 
                     className="default"
+                    disabled={certaintyCountdown > 0}
                     onClick={() => {
                       setShowProofDialog(showCertaintyModal);
                       setShowCertaintyModal(null);
                     }} 
-                    style={{ minWidth: "120px", minHeight: "36px", fontWeight: "bold" }}
+                    style={{ 
+                      minWidth: "120px", 
+                      minHeight: "36px", 
+                      fontWeight: "bold",
+                      opacity: certaintyCountdown > 0 ? 0.45 : 1,
+                      cursor: certaintyCountdown > 0 ? "not-allowed" : "pointer"
+                    }}
                   >
-                    [ ABSOLUTELY SURE ]
+                    {certaintyCountdown > 0 ? `[ WAIT... ${certaintyCountdown} ]` : "[ ABSOLUTELY SURE ]"}
                   </button>
                 </div>
               </div>

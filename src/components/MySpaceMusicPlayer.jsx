@@ -1,7 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins < 10 ? "0" : ""}${mins}:${secs < 10 ? "0" : ""}${secs}`;
+};
 
 /**
- * MySpace Music Player integrated with Spotify Web Playback SDK and Oembed lookup.
+ * MySpace Music Player integrated with Spotify Embed IFrame API.
  * @param {object} props
  * @param {string} props.spotifyTrackUri The unique spotify:track:URI to stream
  */
@@ -15,26 +21,30 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
     durationStr: "04:26"
   });
   
-  const [token, setToken] = useState(localStorage.getItem("asl_spotify_token") || "");
-  const [spotifyPlayer, setSpotifyPlayer] = useState(null);
-  const [sdkReady, setSdkReady] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [embedController, setEmbedController] = useState(null);
+  const [audioInitialized, setAudioInitialized] = useState(false);
+  
+  const containerRef = useRef(null);
 
   // 1. Fetch Track Metadata via Spotify Oembed API
   useEffect(() => {
     if (!spotifyTrackUri) return;
     
+    // Reset playback stats on track change
+    setAudioInitialized(false);
+    setIsPlaying(false);
+    setCurrentTime(0);
+
     const fetchMetadata = async () => {
       try {
         const trackId = spotifyTrackUri.split(":")[2] || spotifyTrackUri;
         const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/track/${trackId}`);
         if (res.ok) {
           const data = await res.json();
-          // Oembed title is usually "Song Title" and author_name is "Artist"
           setTrackInfo({
             title: data.title || "Unknown Song",
             artist: data.author_name || "Unknown Artist",
-            duration: 240, // default placeholder duration
+            duration: 240, // default placeholder
             durationStr: "04:00"
           });
         } else {
@@ -59,136 +69,94 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
     fetchMetadata();
   }, [spotifyTrackUri]);
 
-  // 2. Simulated Playback interval if running without SDK active connection
+  // 2. Initialize/Mount Spotify Embed Controller
   useEffect(() => {
-    let interval = null;
-    if (isPlaying && !spotifyPlayer) {
-      interval = setInterval(() => {
-        setCurrentTime((prev) => {
-          if (prev >= trackInfo.duration) {
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(interval);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, trackInfo.duration, spotifyPlayer]);
+    let active = true;
 
-  // 3. Spotify SDK script loader & initialization
-  useEffect(() => {
-    if (!token) return;
+    const initController = (IFrameAPI) => {
+      if (!active || !containerRef.current) return;
 
-    // Load Spotify SDK script
-    const scriptId = "spotify-player-sdk";
-    let script = document.getElementById(scriptId);
-    if (!script) {
-      script = document.createElement("script");
-      script.id = scriptId;
-      script.src = "https://sdk.scdn.co/spotify-player.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
+      // Clear any previous iframe mounts inside container
+      containerRef.current.innerHTML = "";
+      const tempDiv = document.createElement("div");
+      containerRef.current.appendChild(tempDiv);
 
-    const initPlayer = () => {
-      if (!window.Spotify) return;
-      
-      const player = new window.Spotify.Player({
-        name: "asl Playback Node",
-        getOAuthToken: (cb) => cb(token),
-        volume: 0.5
-      });
+      const options = {
+        uri: spotifyTrackUri || "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g",
+        width: "100%",
+        height: "80"
+      };
 
-      player.addListener("initialization_error", ({ message }) => setErrorMsg(message));
-      player.addListener("authentication_error", ({ message }) => {
-        setErrorMsg("Auth Token Expired. Check developer.spotify.com.");
-        setToken("");
-        localStorage.removeItem("asl_spotify_token");
-      });
-      player.addListener("account_error", ({ message }) => setErrorMsg(message));
-      player.addListener("playback_error", ({ message }) => setErrorMsg(message));
-
-      player.addListener("player_state_changed", (state) => {
-        if (state) {
-          setIsPlaying(!state.paused);
-          setCurrentTime(Math.floor(state.position / 1000));
-          if (state.track_window.current_track) {
-            setTrackInfo({
-              title: state.track_window.current_track.name,
-              artist: state.track_window.current_track.artists.map(a => a.name).join(", "),
-              duration: Math.floor(state.duration / 1000),
-              durationStr: formatTime(Math.floor(state.duration / 1000))
-            });
-          }
-        }
-      });
-
-      player.addListener("ready", ({ device_id }) => {
-        console.log("[Spotify SDK] Connected. Device ID:", device_id);
-        setErrorMsg("");
+      IFrameAPI.createController(tempDiv, options, (controller) => {
+        if (!active) return;
         
-        // Command device local application to stream track URI
-        fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device_id}`, {
-          method: "PUT",
-          body: JSON.stringify({ uris: [spotifyTrackUri] }),
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
+        setEmbedController(controller);
+
+        controller.addListener("playback_update", (e) => {
+          if (!active) return;
+          const { position, duration, isPaused } = e.data;
+          
+          setCurrentTime(Math.floor(position / 1000));
+          setIsPlaying(!isPaused);
+          
+          if (duration) {
+            setTrackInfo((prev) => ({
+              ...prev,
+              duration: Math.floor(duration / 1000),
+              durationStr: formatTime(Math.floor(duration / 1000))
+            }));
+          }
+
+          // Clear autoplay compliance block on actual playback start
+          if (!isPaused && position >= 0) {
+            setAudioInitialized(true);
           }
         });
       });
-
-      player.connect();
-      setSpotifyPlayer(player);
     };
 
-    if (window.Spotify) {
-      initPlayer();
+    if (window.SpotifyIframeApi) {
+      initController(window.SpotifyIframeApi);
     } else {
-      window.onSpotifyWebPlaybackSDKReady = initPlayer;
+      const scriptId = "spotify-iframe-api";
+      let script = document.getElementById(scriptId);
+      if (!script) {
+        script = document.createElement("script");
+        script.id = scriptId;
+        script.src = "https://open.spotify.com/embed/iframe-api/v1";
+        script.async = true;
+        document.body.appendChild(script);
+      }
+
+      const existingCallback = window.onSpotifyIframeApiReady;
+      window.onSpotifyIframeApiReady = (IFrameAPI) => {
+        window.SpotifyIframeApi = IFrameAPI;
+        if (existingCallback) {
+          existingCallback(IFrameAPI);
+        }
+        initController(IFrameAPI);
+      };
     }
 
     return () => {
-      if (spotifyPlayer) {
-        spotifyPlayer.disconnect();
-      }
+      active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, spotifyTrackUri]);
+  }, [spotifyTrackUri]);
 
-  const handlePlayPause = () => {
-    if (spotifyPlayer) {
-      spotifyPlayer.togglePlay();
+  const handlePlay = () => {
+    if (embedController) {
+      embedController.play();
     } else {
-      setIsPlaying(!isPlaying);
+      setIsPlaying(true);
     }
   };
 
-  const handleTokenSubmit = (e) => {
-    e.preventDefault();
-    const inputToken = e.target.elements.tokenInput.value.trim();
-    if (inputToken) {
-      setToken(inputToken);
-      localStorage.setItem("asl_spotify_token", inputToken);
+  const handlePause = () => {
+    if (embedController) {
+      embedController.pause();
+    } else {
+      setIsPlaying(false);
     }
-  };
-
-  const handleClearToken = () => {
-    setToken("");
-    localStorage.removeItem("asl_spotify_token");
-    if (spotifyPlayer) {
-      spotifyPlayer.disconnect();
-      setSpotifyPlayer(null);
-    }
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins < 10 ? "0" : ""}${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
   const progressPercent = (currentTime / trackInfo.duration) * 100;
@@ -196,11 +164,57 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
   return (
     <div className="myspace-player-widget beveled-box" style={{ padding: "8px", border: "1px solid #ff99cc" }}>
       <div className="player-inner" style={{ backgroundColor: "#003399" }}>
+        
+        {/* Headless Audio Mount Container */}
+        <div 
+          style={{ 
+            position: "absolute", 
+            width: "1px", 
+            height: "1px", 
+            opacity: 0.001, 
+            pointerEvents: "none", 
+            zIndex: -100, 
+            overflow: "hidden" 
+          }}
+        >
+          <div ref={containerRef} />
+        </div>
+
         {/* LCD Screen */}
-        <div className="player-screen" style={{ backgroundColor: "#000", color: "#ff66cc" }}>
+        <div className="player-screen" style={{ backgroundColor: "#000", color: "#ff66cc", position: "relative" }}>
+          
+          {/* Autoplay Compliance Gate Blinking Overlay */}
+          {!audioInitialized && (
+            <div 
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                backgroundColor: "#000",
+                color: "#ff007f",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "bold",
+                fontSize: "11px",
+                zIndex: 10,
+                fontFamily: "monospace",
+                textAlign: "center",
+                cursor: "pointer",
+                padding: "4px",
+                boxSizing: "border-box"
+              }}
+              onClick={handlePlay}
+            >
+              <span className="retro-blink">&gt;&gt; CLICK PLAY TO TUNE IN &lt;&lt;</span>
+            </div>
+          )}
+
           <div className="track-info" style={{ borderBottom: "1px dashed #ff007f" }}>
             <span className="lcd-text scrolling-title" style={{ color: "#ff66cc" }}>
-              {token ? "📟 [SDK Mode] " : "🎧 [Mock Mode] "} {trackInfo.artist} - {trackInfo.title}
+              🎧 {trackInfo.artist} - {trackInfo.title}
             </span>
           </div>
           <div className="playback-stats" style={{ color: "#ff99cc" }}>
@@ -220,10 +234,30 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
 
         {/* Player Controls */}
         <div className="player-controls">
-          <div className="controls-row">
-            <button onClick={handlePlayPause} className="player-btn play-btn" style={{ flex: 1 }} title={isPlaying ? "Pause" : "Play"}>
-              {isPlaying ? "⏸" : "▶"}
+          <div className="controls-row" style={{ display: "flex", gap: "4px", width: "100%" }}>
+            
+            {/* Custom Vintage Play/Pause Vector Buttons */}
+            <button 
+              onClick={handlePlay} 
+              className={`player-btn play-btn ${isPlaying ? "active" : ""}`} 
+              style={{ flex: 1 }} 
+              title="Play"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" style={{ fill: isPlaying ? "#39ff14" : "#ff66cc" }}>
+                <path d="M2,1 L8,5 L2,9 Z" />
+              </svg>
             </button>
+            <button 
+              onClick={handlePause} 
+              className={`player-btn pause-btn ${!isPlaying ? "active" : ""}`} 
+              style={{ flex: 1 }} 
+              title="Pause"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" style={{ fill: !isPlaying ? "#39ff14" : "#ff66cc" }}>
+                <path d="M2,1 H4 V9 H2 Z M6,1 H8 V9 H6 Z" />
+              </svg>
+            </button>
+
           </div>
           
           <div className="progress-bar-container">
@@ -232,27 +266,6 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Spotify Developer Access Token Input */}
-      <div style={{ marginTop: "6px", fontSize: "10px", color: "#666" }}>
-        {!token ? (
-          <form onSubmit={handleTokenSubmit} style={{ display: "flex", gap: "4px" }}>
-            <input 
-              name="tokenInput"
-              type="text" 
-              placeholder="Paste Spotify Auth Token..."
-              style={{ flex: 1, minHeight: "22px", height: "22px", padding: "2px 4px", fontSize: "10px !important" }}
-            />
-            <button type="submit" style={{ minHeight: "22px", padding: "0 6px !important", fontSize: "10px !important" }}>Link</button>
-          </form>
-        ) : (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: "green" }}>● Spotify Connected</span>
-            <span onClick={handleClearToken} style={{ textDecoration: "underline", cursor: "pointer" }}>Disconnect</span>
-          </div>
-        )}
-        {errorMsg && <div style={{ color: "red", marginTop: "2px" }}>{errorMsg}</div>}
       </div>
     </div>
   );

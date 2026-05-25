@@ -114,12 +114,12 @@ export default function AIMChat({ chatId, connection, currentUser, onClose }) {
   // Red Flag Reporting (AIM Warning Button)
   const handleWarnUser = async () => {
     const confirmFlag = window.confirm(
-      "Report User:\nAre you sure you want to flag this user for safety policy violations? 3 flags will result in an immediate system ban."
+      "Report User:\nAre you sure you want to flag this user for safety policy violations? 3 unique reports will result in an immediate system ban."
     );
     if (!confirmFlag) return;
 
     try {
-      // Spite-Ban Shield Check
+      // ── Spite-Ban Shield Checks ──────────────────────────────────────────
       let passShield = true;
       const reporterSnap = await dbGetDoc("users", currentUser.uid);
 
@@ -127,56 +127,99 @@ export default function AIMChat({ chatId, connection, currentUser, onClose }) {
         passShield = false;
       } else {
         const reporterData = reporterSnap.data();
-        
-        // Check A: Reporting profile must be authenticated permanent (!isAnonymous)
+
+        // Check A: Reporter must be a permanent (non-anonymous) account
         if (currentUser.isAnonymous || reporterData.isAnonymous) {
           passShield = false;
         }
 
-        // Check B: Reporting profile creation delta >= 48 hours
+        // Check B: Reporter account must be >= 48 hours old
         const ageMs = Date.now() - (reporterData.createdAt || 0);
         if (ageMs < 48 * 60 * 60 * 1000) {
           passShield = false;
         }
       }
 
-      // Check C: chat participants / proof document existence check
+      // Check C: Reporter must be an actual participant of this conversation
       if (passShield && connection && connection.id) {
         const connSnap = await dbGetDoc("connections", connection.id);
         if (!connSnap.exists()) {
           passShield = false;
         } else {
           const connData = connSnap.data();
-          const isParticipant = 
-            (connData.senderId === currentUser.uid && connData.receiverId === otherUserId) || 
+          const isParticipant =
+            (connData.senderId === currentUser.uid && connData.receiverId === otherUserId) ||
             (connData.receiverId === currentUser.uid && connData.senderId === otherUserId);
-          if (!isParticipant) {
-            passShield = false;
-          }
+          if (!isParticipant) passShield = false;
         }
       } else {
         passShield = false;
       }
 
-      // 2. Increment flag count only if shield checks pass
-      if (passShield) {
-        const otherUserSnap = await dbGetDoc("users", otherUserId);
-        let currentFlags = 0;
-        if (otherUserSnap.exists()) {
-          currentFlags = otherUserSnap.data().flag_count || 0;
-        }
-
-        await dbUpdateDoc("users", otherUserId, {
-          flag_count: currentFlags + 1
-        });
+      if (!passShield) {
+        alert("Report could not be submitted. Your account does not meet the minimum requirements to file a report.");
+        return;
       }
 
-      alert("User flagged. Safety team has been notified. This conversation has been closed.");
+      // ── Daily Report Rate Limit (max 3 per calendar day) ────────────────
+      const reporterData2 = reporterSnap.data();
+      const todayStr = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+      const reporterDailyDate = reporterData2.dailyReportDate || "";
+      const reporterDailyCount = reporterDailyDate === todayStr
+        ? (reporterData2.dailyReportCount || 0)
+        : 0;
+
+      if (reporterDailyCount >= 3) {
+        alert("Daily Report Limit Reached: You can only file 3 reports per day. This limit prevents system abuse. Try again tomorrow.");
+        return;
+      }
+
+      // ── Unique Reporter Enforcement ──────────────────────────────────────
+      const otherUserSnap = await dbGetDoc("users", otherUserId);
+      if (!otherUserSnap.exists()) {
+        alert("User not found.");
+        return;
+      }
+
+      const otherUserData = otherUserSnap.data();
+      const existingReporters = Array.isArray(otherUserData.reporterIds) ? otherUserData.reporterIds : [];
+
+      // Check D: This user has already reported this person — one report per user
+      if (existingReporters.includes(currentUser.uid)) {
+        alert("You have already reported this user. No further action is needed — our team has been notified.");
+        onClose();
+        return;
+      }
+
+      // Append reporter and check ban threshold (3 unique reporters)
+      const updatedReporters = [...existingReporters, currentUser.uid];
+      const shouldBan = updatedReporters.length >= 3;
+
+      // Write report to target user AND increment reporter's daily count atomically
+      await Promise.all([
+        dbUpdateDoc("users", otherUserId, {
+          reporterIds: updatedReporters,
+          flag_count: updatedReporters.length,
+          ...(shouldBan ? { isBanned: true, bannedAt: Date.now() } : {})
+        }),
+        dbUpdateDoc("users", currentUser.uid, {
+          dailyReportCount: reporterDailyCount + 1,
+          dailyReportDate: todayStr
+        })
+      ]);
+
+      if (shouldBan) {
+        alert("Report submitted. This user has reached the report threshold and has been removed from the platform.");
+      } else {
+        alert("Report submitted. Safety team has been notified. This conversation has been closed.");
+      }
+
       onClose();
     } catch (err) {
       console.error("Error flagging user:", err);
     }
   };
+
 
   return (
     <>

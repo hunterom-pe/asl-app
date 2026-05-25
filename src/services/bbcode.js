@@ -1,4 +1,46 @@
 /**
+ * Strips excessively nested BBCode tags beyond maxDepth levels.
+ * Prevents [size=28][size=28][size=28]... stacking attacks.
+ * @param {string} text Raw input
+ * @param {number} maxDepth Maximum allowed nesting depth per tag type (default 3)
+ * @returns {string} Text with excess nesting collapsed
+ */
+function stripExcessiveNesting(text, maxDepth = 3) {
+  // Match any opening BBCode tag like [b], [size=20], [color=red]
+  const openTagRegex = /\[([a-zA-Z]+)(?:=[^\]]+)?\]/gi;
+  // Match any closing BBCode tag like [/b], [/size]
+  const closeTagRegex = /\[\/([a-zA-Z]+)\]/gi;
+
+  // Count nesting depth per tag type using a stack approach
+  const depth = {};
+  let result = text;
+
+  // Two-pass: strip opening tags beyond maxDepth
+  result = result.replace(openTagRegex, (match, tagName) => {
+    const key = tagName.toLowerCase();
+    depth[key] = (depth[key] || 0) + 1;
+    if (depth[key] > maxDepth) {
+      return ""; // strip excess opening tag
+    }
+    return match;
+  });
+
+  // Reset and strip corresponding excess closing tags
+  const closingDepth = {};
+  result = result.replace(closeTagRegex, (match, tagName) => {
+    const key = tagName.toLowerCase();
+    closingDepth[key] = (closingDepth[key] || 0) + 1;
+    const openCount = depth[key] || 0;
+    if (closingDepth[key] > Math.min(openCount, maxDepth)) {
+      return ""; // strip orphaned/excess closing tag
+    }
+    return match;
+  });
+
+  return result;
+}
+
+/**
  * BBCode parser for RetroConnect.
  * Safely escapes all HTML to prevent XSS, then translates BBCode tags into styled HTML.
  * @param {string} text Raw user input text
@@ -7,8 +49,14 @@
 export function parseBBCode(text) {
   if (!text) return "";
 
+  // 0. Hard parser-level character cap (separate from Firestore 2000-char limit)
+  const cappedText = text.length > 3000 ? text.slice(0, 3000) : text;
+
+  // 0b. Strip excessive BBCode nesting (max 3 levels deep per tag type)
+  const safeText = stripExcessiveNesting(cappedText, 3);
+
   // 1. Escape HTML special characters to prevent XSS injection completely
-  let html = text
+  let html = safeText
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -60,3 +108,4 @@ export function parseBBCode(text) {
 
   return html;
 }
+

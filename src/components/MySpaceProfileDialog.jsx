@@ -4,6 +4,27 @@ import { parseBBCode } from "../services/bbcode";
 import MySpaceMusicPlayer from "./MySpaceMusicPlayer";
 import { dbGetDoc } from "../firebase";
 
+const extractSpotifyTrackId = (input) => {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+
+  const urlPattern = /open\.spotify\.com\/(?:[a-zA-Z-]+\/)?track\/([a-zA-Z0-9]{22})/;
+  const uriPattern = /spotify:track:([a-zA-Z0-9]{22})/;
+  const rawPattern = /^[a-zA-Z0-9]{22}$/;
+
+  const urlMatch = trimmed.match(urlPattern);
+  if (urlMatch) return urlMatch[1];
+
+  const uriMatch = trimmed.match(uriPattern);
+  if (uriMatch) return uriMatch[1];
+
+  const rawMatch = trimmed.match(rawPattern);
+  if (rawMatch) return rawMatch[0];
+
+  return null;
+};
+
+
 const EMOJI_PRESETS = [
   // Faces & People
   "😀", "😎", "😍", "🤩", "😏", "😒", "😔", "😭", "😤", "😠",
@@ -61,6 +82,8 @@ export default function MySpaceProfileDialog({
   const [editSpotifyTrackUri, setEditSpotifyTrackUri] = useState(spotify_track_uri);
   const [editHeadline, setEditHeadline] = useState(headline);
   const [showHelp, setShowHelp] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [profileError, setProfileError] = useState("");
   const [friendProfiles, setFriendProfiles] = useState({});
 
   const favoritedVenueList = (favorited_bars || []).map(id => {
@@ -125,6 +148,17 @@ export default function MySpaceProfileDialog({
       alert("Tagline must be 100 characters or less.");
       return;
     }
+    // Tagline must be plain text — no URLs, emails, markdown links, or @handles
+    const headlineHasBadContent =
+      /https?:\/\//i.test(editHeadline) ||          // http:// or https://
+      /www\./i.test(editHeadline) ||                 // www. links
+      /\S+@\S+\.\S+/.test(editHeadline) ||           // email addresses
+      /\[.+\]\(.+\)/.test(editHeadline) ||           // markdown links [text](url)
+      /(?:^|\s)@\S+/.test(editHeadline);             // @handle mentions
+    if (headlineHasBadContent) {
+      alert("Tagline cannot contain URLs, email addresses, links, or @mentions. Keep it plain text.");
+      return;
+    }
     if (editBio.length > 500) {
       alert("Biography must be 500 characters or less.");
       return;
@@ -134,6 +168,16 @@ export default function MySpaceProfileDialog({
       return;
     }
 
+    let formattedSpotifyTrackUri = "";
+    if (editSpotifyTrackUri.trim() !== "") {
+      const trackId = extractSpotifyTrackId(editSpotifyTrackUri);
+      if (!trackId) {
+        setProfileError("SYSTEM ERROR: INVALID SPOTIFY AUDIO IDENTIFIER. TRACK ID MUST BE A 22-CHARACTER ALPHANUMERIC STRING.");
+        return;
+      }
+      formattedSpotifyTrackUri = `spotify:track:${trackId}`;
+    }
+
     if (onSaveProfile) {
       onSaveProfile({
         username: editUsername,
@@ -141,10 +185,11 @@ export default function MySpaceProfileDialog({
         bio: editBio,
         profileTheme: editProfileTheme,
         emoji_avatar: editEmojiAvatar,
-        spotify_track_uri: editSpotifyTrackUri,
+        spotify_track_uri: formattedSpotifyTrackUri,
         headline: editHeadline
       });
       setIsEditing(false);
+      setProfileError("");
     }
   };
 
@@ -320,14 +365,53 @@ export default function MySpaceProfileDialog({
                   </select>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", margin: "4px 0", padding: "6px", border: "1px solid #ccc", backgroundColor: "#fff" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold" }}>Spotify Track URI:</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <label style={{ fontSize: "11px", fontWeight: "bold" }}>Spotify Track URI:</label>
+                    <button 
+                      type="button"
+                      onClick={() => setShowHelpModal(true)} 
+                      style={{ 
+                        padding: "0 6px", 
+                        fontSize: "10px", 
+                        cursor: "pointer", 
+                        height: "18px", 
+                        minHeight: "18px",
+                        lineHeight: "14px",
+                        backgroundColor: "#dfdfdf",
+                        border: "1px solid #808080",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      [ ? ]
+                    </button>
+                  </div>
                   <input 
                     type="text" 
                     value={editSpotifyTrackUri}
-                    onChange={(e) => setEditSpotifyTrackUri(e.target.value)}
+                    onChange={(e) => {
+                      setEditSpotifyTrackUri(e.target.value);
+                      if (profileError) setProfileError("");
+                    }}
                     placeholder="e.g. spotify:track:4PTG3Z6ehGkBF3zI7YSp6g"
                     style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px" }}
                   />
+                  {profileError && (
+                    <div 
+                      style={{ 
+                        backgroundColor: "#ff007f", 
+                        color: "#fff", 
+                        border: "2px outset #ff007f", 
+                        padding: "6px", 
+                        marginTop: "4px", 
+                        fontSize: "10px", 
+                        fontFamily: "monospace", 
+                        fontWeight: "bold",
+                        lineHeight: "1.3"
+                      }}
+                    >
+                      🚨 {profileError}
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -502,6 +586,7 @@ export default function MySpaceProfileDialog({
                       setEditEmojiAvatar(emoji_avatar);
                       setEditSpotifyTrackUri(spotify_track_uri);
                       setEditHeadline(headline);
+                      setProfileError("");
                     }} 
                     style={{ flex: 1, minHeight: "42px", fontSize: "14px" }}
                   >
@@ -521,6 +606,113 @@ export default function MySpaceProfileDialog({
         )}
 
       </div>
+
+      {showHelpModal && (
+        <div 
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999
+          }}
+          onClick={() => setShowHelpModal(false)}
+        >
+          <div 
+            style={{
+              width: "320px",
+              backgroundColor: "#dfdfdf",
+              border: "2px solid #fff",
+              borderRightColor: "#808080",
+              borderBottomColor: "#808080",
+              padding: "2px",
+              boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+              boxSizing: "border-box"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Title Bar */}
+            <div 
+              style={{
+                backgroundColor: "#003399",
+                color: "#fff",
+                padding: "4px 6px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                fontWeight: "bold",
+                fontSize: "11px",
+                fontFamily: "Tahoma, sans-serif"
+              }}
+            >
+              <span>Spotify Help & Instructions</span>
+              <button 
+                onClick={() => setShowHelpModal(false)}
+                style={{
+                  width: "14px",
+                  height: "14px",
+                  fontSize: "9px",
+                  lineHeight: "10px",
+                  padding: 0,
+                  cursor: "pointer",
+                  backgroundColor: "#dfdfdf",
+                  border: "1px solid #808080",
+                  fontWeight: "bold"
+                }}
+              >
+                X
+              </button>
+            </div>
+
+            {/* Content */}
+            <div 
+              style={{
+                padding: "12px",
+                fontSize: "12px",
+                color: "#000",
+                lineHeight: "1.5",
+                fontFamily: "Arial, Helvetica, sans-serif"
+              }}
+            >
+              <p style={{ fontWeight: "bold", margin: "0 0 8px 0" }}>How to get your Spotify Track URI:</p>
+              <ol style={{ paddingLeft: "20px", margin: "0 0 12px 0" }}>
+                <li>Open the Spotify app or web player.</li>
+                <li>Find your favorite song.</li>
+                <li>Click the three dots next to the song title.</li>
+                <li>Go to <strong>Share</strong> -&gt; <strong>Copy Song Link</strong>.</li>
+                <li>Paste that link directly into the input field!</li>
+              </ol>
+              <p style={{ margin: 0, fontSize: "11px", color: "#666" }}>
+                We will automatically extract the 22-character track ID for you!
+              </p>
+            </div>
+
+            {/* Footer Buttons */}
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px", borderTop: "1px solid #ccc" }}>
+              <button 
+                onClick={() => setShowHelpModal(false)}
+                style={{
+                  padding: "4px 16px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  backgroundColor: "#dfdfdf",
+                  border: "2px solid #fff",
+                  borderRightColor: "#808080",
+                  borderBottomColor: "#808080",
+                  fontWeight: "bold"
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
