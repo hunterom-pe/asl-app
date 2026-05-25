@@ -371,17 +371,21 @@ export default function MySpaceProfileDialog({
                       type="button"
                       onClick={() => setShowHelpModal(true)} 
                       style={{ 
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         padding: "0 6px", 
                         fontSize: "10px", 
                         cursor: "pointer", 
                         height: "18px", 
                         minHeight: "18px",
-                        lineHeight: "14px",
                         backgroundColor: "#dfdfdf",
                         color: "#000",
                         border: "1px solid #808080",
                         fontWeight: "bold",
-                        fontFamily: "monospace"
+                        fontFamily: "monospace",
+                        lineHeight: 1,
+                        boxSizing: "border-box"
                       }}
                     >
                       [ ? ]
