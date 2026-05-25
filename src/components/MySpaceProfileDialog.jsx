@@ -250,7 +250,7 @@ export default function MySpaceProfileDialog({
             {/* Emoji Avatar Customizer — edit mode only */}
             {isEditing && (
               <div style={{ border: "1px solid #ccc", backgroundColor: "#fff", padding: "8px", marginBottom: "8px" }}>
-                <div style={{ fontSize: "11px", fontWeight: "bold", marginBottom: "6px" }}>Customize Avatar (pick exactly 3):</div>
+                <div style={{ fontSize: "11px", fontWeight: "bold", marginBottom: "6px", color: "#333" }}>Customize Avatar (pick exactly 3):</div>
                 
                 {/* Currently selected emojis */}
                 <div style={{ display: "flex", gap: "6px", marginBottom: "8px", minHeight: "48px", alignItems: "center" }}>
@@ -352,7 +352,7 @@ export default function MySpaceProfileDialog({
             {isEditing && (
               <>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", margin: "4px 0", padding: "6px", border: "1px solid #ccc", backgroundColor: "#fff" }}>
-                  <label style={{ fontSize: "11px", fontWeight: "bold" }}>Profile Theme:</label>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Profile Theme:</label>
                   <select 
                     value={editProfileTheme} 
                     onChange={(e) => setEditProfileTheme(e.target.value)}
@@ -366,7 +366,7 @@ export default function MySpaceProfileDialog({
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", margin: "4px 0", padding: "6px", border: "1px solid #ccc", backgroundColor: "#fff" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <label style={{ fontSize: "11px", fontWeight: "bold" }}>Spotify Track URI:</label>
+                    <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Spotify Track URI:</label>
                     <button 
                       type="button"
                       onClick={() => setShowHelpModal(true)} 
@@ -378,8 +378,10 @@ export default function MySpaceProfileDialog({
                         minHeight: "18px",
                         lineHeight: "14px",
                         backgroundColor: "#dfdfdf",
+                        color: "#000",
                         border: "1px solid #808080",
-                        fontWeight: "bold"
+                        fontWeight: "bold",
+                        fontFamily: "monospace"
                       }}
                     >
                       [ ? ]
