@@ -1841,6 +1841,7 @@ export default function App() {
             profileTheme={selectedProfileUser.profileTheme}
             emoji_avatar={selectedProfileUser.emoji_avatar}
             headline={selectedProfileUser.headline}
+            spotify_track_uri={selectedProfileUser.spotify_track_uri}
             onClose={() => {
               setSelectedProfileUser(null);
               setNavigationScreen("home");
