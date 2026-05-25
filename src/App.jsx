@@ -613,6 +613,8 @@ export default function App() {
           profileTheme: userData.profileTheme || "classic",
           emoji_avatar: userData.emoji_avatar || "👥🥃💖",
           spotify_track_uri: userData.spotify_track_uri || "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g",
+          spotify_song_title: userData.spotify_song_title || "",
+          spotify_artist_name: userData.spotify_artist_name || "",
           favorited_bars: userData.favorited_bars || [],
           headline: userData.headline || "Everyone's favorite dial-up partner"
         });
@@ -625,6 +627,8 @@ export default function App() {
           profileTheme: "classic",
           emoji_avatar: "👥🥃💖",
           spotify_track_uri: "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g",
+          spotify_song_title: "",
+          spotify_artist_name: "",
           favorited_bars: [],
           headline: "Everyone's favorite dial-up partner"
         });
@@ -648,6 +652,8 @@ export default function App() {
           profileTheme: userData.profileTheme || fallbackData.profileTheme || "classic",
           emoji_avatar: userData.emoji_avatar || fallbackData.emoji_avatar || "👥🥃💖",
           spotify_track_uri: userData.spotify_track_uri || fallbackData.spotify_track_uri || "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g",
+          spotify_song_title: userData.spotify_song_title || fallbackData.spotify_song_title || "",
+          spotify_artist_name: userData.spotify_artist_name || fallbackData.spotify_artist_name || "",
           favorited_bars: userData.favorited_bars || [],
           headline: userData.headline || fallbackData.headline || "Everyone's favorite dial-up partner"
         });
@@ -660,6 +666,8 @@ export default function App() {
           profileTheme: fallbackData.profileTheme || fallbackData.profileTheme || "classic",
           emoji_avatar: fallbackData.emoji_avatar || "👥🥃💖",
           spotify_track_uri: fallbackData.spotify_track_uri || "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g",
+          spotify_song_title: fallbackData.spotify_song_title || "",
+          spotify_artist_name: fallbackData.spotify_artist_name || "",
           favorited_bars: [],
           headline: fallbackData.headline || "Everyone's favorite dial-up partner"
         });
@@ -674,6 +682,8 @@ export default function App() {
         profileTheme: fallbackData.profileTheme || fallbackData.profileTheme || "classic",
         emoji_avatar: fallbackData.emoji_avatar || "👥🥃💖",
         spotify_track_uri: fallbackData.spotify_track_uri || "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g",
+        spotify_song_title: fallbackData.spotify_song_title || "",
+        spotify_artist_name: fallbackData.spotify_artist_name || "",
         favorited_bars: [],
         headline: fallbackData.headline || "Everyone's favorite dial-up partner"
       });
@@ -1842,6 +1852,8 @@ export default function App() {
             emoji_avatar={selectedProfileUser.emoji_avatar}
             headline={selectedProfileUser.headline}
             spotify_track_uri={selectedProfileUser.spotify_track_uri}
+            spotify_song_title={selectedProfileUser.spotify_song_title}
+            spotify_artist_name={selectedProfileUser.spotify_artist_name}
             onClose={() => {
               setSelectedProfileUser(null);
               setNavigationScreen("home");

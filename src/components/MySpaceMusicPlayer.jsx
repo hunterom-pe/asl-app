@@ -11,7 +11,11 @@ const formatTime = (seconds) => {
  * @param {object} props
  * @param {string} props.spotifyTrackUri The unique spotify:track:URI to stream
  */
-export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g" }) {
+export default function MySpaceMusicPlayer({ 
+  spotifyTrackUri = "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g",
+  spotifySongTitle = "",
+  spotifyArtistName = ""
+}) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [trackInfo, setTrackInfo] = useState({
@@ -37,6 +41,16 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
     setSpotifyActive(false);
     setCurrentTime(0);
 
+    if (spotifySongTitle && spotifyArtistName) {
+      setTrackInfo({
+        title: spotifySongTitle,
+        artist: spotifyArtistName,
+        duration: 240, // default placeholder
+        durationStr: "04:00"
+      });
+      return;
+    }
+
     const fetchMetadata = async () => {
       try {
         const trackId = spotifyTrackUri.split(":")[2] || spotifyTrackUri;
@@ -45,19 +59,21 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
           const data = await res.json();
           
           const rawTitle = data.title || "Unknown Song";
-          let parsedTitle = rawTitle;
-          let parsedArtist = "Unknown Artist";
+          let parsedTitle = spotifySongTitle || rawTitle;
+          let parsedArtist = spotifyArtistName || "Unknown Artist";
           
-          // Match "Song Title - Song by Artist Name" (case-insensitive)
-          const match = rawTitle.match(/(.+?)\s+-\s+song\s+by\s+(.+)/i);
-          if (match) {
-            parsedTitle = match[1];
-            parsedArtist = match[2];
-          } else {
-            const parts = rawTitle.split(" - ");
-            if (parts.length > 1) {
-              parsedTitle = parts[0];
-              parsedArtist = parts[1];
+          if (!spotifyArtistName) {
+            // Match "Song Title - Song by Artist Name" (case-insensitive)
+            const match = rawTitle.match(/(.+?)\s+-\s+song\s+by\s+(.+)/i);
+            if (match) {
+              if (!spotifySongTitle) parsedTitle = match[1];
+              parsedArtist = match[2];
+            } else {
+              const parts = rawTitle.split(" - ");
+              if (parts.length > 1) {
+                if (!spotifySongTitle) parsedTitle = parts[0];
+                parsedArtist = parts[1];
+              }
             }
           }
 
@@ -69,8 +85,8 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
           });
         } else {
           setTrackInfo({
-            title: "Spotify Track",
-            artist: spotifyTrackUri,
+            title: spotifySongTitle || "Spotify Track",
+            artist: spotifyArtistName || spotifyTrackUri,
             duration: 240,
             durationStr: "04:00"
           });
@@ -78,8 +94,8 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
       } catch (err) {
         console.error("Failed to load Spotify oembed details:", err);
         setTrackInfo({
-          title: "Spotify Track",
-          artist: "Active Session",
+          title: spotifySongTitle || "Spotify Track",
+          artist: spotifyArtistName || "Active Session",
           duration: 240,
           durationStr: "04:00"
         });
@@ -87,7 +103,7 @@ export default function MySpaceMusicPlayer({ spotifyTrackUri = "spotify:track:4P
     };
 
     fetchMetadata();
-  }, [spotifyTrackUri]);
+  }, [spotifyTrackUri, spotifySongTitle, spotifyArtistName]);
 
   // 2. Initialize/Mount Spotify Embed Controller
   useEffect(() => {

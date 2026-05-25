@@ -61,6 +61,8 @@ export default function MySpaceProfileDialog({
   profileTheme = "classic", 
   emoji_avatar = "👥🥃💖",
   spotify_track_uri = "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g",
+  spotify_song_title = "",
+  spotify_artist_name = "",
   headline = "Everyone's favorite dial-up partner",
   onClose,
   onOpenChat,
@@ -80,6 +82,8 @@ export default function MySpaceProfileDialog({
   const [editProfileTheme, setEditProfileTheme] = useState(profileTheme);
   const [editEmojiAvatar, setEditEmojiAvatar] = useState(emoji_avatar);
   const [editSpotifyTrackUri, setEditSpotifyTrackUri] = useState(spotify_track_uri);
+  const [editSpotifySongTitle, setEditSpotifySongTitle] = useState(spotify_song_title);
+  const [editSpotifyArtistName, setEditSpotifyArtistName] = useState(spotify_artist_name);
   const [editHeadline, setEditHeadline] = useState(headline);
   const [showHelp, setShowHelp] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -186,6 +190,8 @@ export default function MySpaceProfileDialog({
         profileTheme: editProfileTheme,
         emoji_avatar: editEmojiAvatar,
         spotify_track_uri: formattedSpotifyTrackUri,
+        spotify_song_title: editSpotifySongTitle,
+        spotify_artist_name: editSpotifyArtistName,
         headline: editHeadline
       });
       setIsEditing(false);
@@ -345,7 +351,11 @@ export default function MySpaceProfileDialog({
             </div>
 
             {!isEditing && (
-              <MySpaceMusicPlayer spotifyTrackUri={spotify_track_uri} />
+              <MySpaceMusicPlayer 
+                spotifyTrackUri={spotify_track_uri} 
+                spotifySongTitle={spotify_song_title}
+                spotifyArtistName={spotify_artist_name}
+              />
             )}
 
             {/* Custom Theme Selector (only visible in edit mode) */}
@@ -364,43 +374,68 @@ export default function MySpaceProfileDialog({
                     <option value="sunset">Sunset 🌅</option>
                   </select>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px", margin: "4px 0", padding: "6px", border: "1px solid #ff99cc", backgroundColor: "#fff" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Spotify Track URI:</label>
-                    <button 
-                      type="button"
-                      onClick={() => setShowHelpModal(true)} 
-                      style={{ 
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "0 6px", 
-                        fontSize: "10px", 
-                        cursor: "pointer", 
-                        height: "18px", 
-                        minHeight: "18px",
-                        backgroundColor: "#dfdfdf",
-                        color: "#000",
-                        border: "1px solid #808080",
-                        fontWeight: "bold",
-                        fontFamily: "monospace",
-                        lineHeight: 1,
-                        boxSizing: "border-box"
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", margin: "4px 0", padding: "6px", border: "1px solid #ff99cc", backgroundColor: "#fff" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Spotify Track URI:</label>
+                      <button 
+                        type="button"
+                        onClick={() => setShowHelpModal(true)} 
+                        style={{ 
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "0 6px", 
+                          fontSize: "10px", 
+                          cursor: "pointer", 
+                          height: "18px", 
+                          minHeight: "18px",
+                          backgroundColor: "#dfdfdf",
+                          color: "#000",
+                          border: "1px solid #808080",
+                          fontWeight: "bold",
+                          fontFamily: "monospace",
+                          lineHeight: 1,
+                          boxSizing: "border-box"
+                        }}
+                      >
+                        [ ? ]
+                      </button>
+                    </div>
+                    <input 
+                      type="text" 
+                      value={editSpotifyTrackUri}
+                      onChange={(e) => {
+                        setEditSpotifyTrackUri(e.target.value);
+                        if (profileError) setProfileError("");
                       }}
-                    >
-                      [ ? ]
-                    </button>
+                      placeholder="e.g. spotify:track:4PTG3Z6ehGkBF3zI7YSp6g"
+                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px", color: "#000", backgroundColor: "#fff" }}
+                    />
                   </div>
-                  <input 
-                    type="text" 
-                    value={editSpotifyTrackUri}
-                    onChange={(e) => {
-                      setEditSpotifyTrackUri(e.target.value);
-                      if (profileError) setProfileError("");
-                    }}
-                    placeholder="e.g. spotify:track:4PTG3Z6ehGkBF3zI7YSp6g"
-                    style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px" }}
-                  />
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Display Song Title (Optional):</label>
+                    <input 
+                      type="text" 
+                      value={editSpotifySongTitle}
+                      onChange={(e) => setEditSpotifySongTitle(e.target.value)}
+                      placeholder="e.g. Hum of Hurt"
+                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px", color: "#000", backgroundColor: "#fff" }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <label style={{ fontSize: "11px", fontWeight: "bold", color: "#333" }}>Display Artist Name (Optional):</label>
+                    <input 
+                      type="text" 
+                      value={editSpotifyArtistName}
+                      onChange={(e) => setEditSpotifyArtistName(e.target.value)}
+                      placeholder="e.g. Converge"
+                      style={{ width: "100%", fontSize: "12px", padding: "4px", minHeight: "28px", height: "28px", color: "#000", backgroundColor: "#fff" }}
+                    />
+                  </div>
+
                   {profileError && (
                     <div 
                       style={{ 
@@ -591,6 +626,8 @@ export default function MySpaceProfileDialog({
                       setEditProfileTheme(profileTheme);
                       setEditEmojiAvatar(emoji_avatar);
                       setEditSpotifyTrackUri(spotify_track_uri);
+                      setEditSpotifySongTitle(spotify_song_title);
+                      setEditSpotifyArtistName(spotify_artist_name);
                       setEditHeadline(headline);
                       setProfileError("");
                     }} 
