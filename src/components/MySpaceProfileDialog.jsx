@@ -117,8 +117,12 @@ export default function MySpaceProfileDialog({
         
         setTimeout(async () => {
           if (onSaveProfile) {
+            const isCozy = checkoutProduct.id === "cozy_pack";
+            const themesToUnlock = isCozy 
+              ? ["animal-crossing", "spirited-away", "matcha-tea"] 
+              : ["one-piece", "demon-slayer", "jujutsu-kaisen"];
             const updatedUnlocked = [
-              ...new Set([...ownedThemes, "one-piece", "demon-slayer", "jujutsu-kaisen"])
+              ...new Set([...ownedThemes, ...themesToUnlock])
             ];
             await onSaveProfile({
               unlockedThemes: updatedUnlocked
@@ -256,6 +260,9 @@ export default function MySpaceProfileDialog({
       case "one-piece": return "myspace-theme-onepiece";
       case "demon-slayer": return "myspace-theme-demonslayer";
       case "jujutsu-kaisen": return "myspace-theme-jujutsukaisen";
+      case "animal-crossing": return "myspace-theme-animalcrossing";
+      case "spirited-away": return "myspace-theme-spiritedaway";
+      case "matcha-tea": return "myspace-theme-matchatea";
       default: return "myspace-theme-classic";
     }
   };
@@ -410,11 +417,13 @@ export default function MySpaceProfileDialog({
                     onChange={(e) => {
                       const selectedTheme = e.target.value;
                       if (!isThemeUnlocked(selectedTheme)) {
+                        const cozyThemes = ["animal-crossing", "spirited-away", "matcha-tea"];
+                        const isCozy = cozyThemes.includes(selectedTheme);
                         setCheckoutProduct({
-                          id: "weeb_pack",
-                          name: "Weeb Theme Bundle",
+                          id: isCozy ? "cozy_pack" : "weeb_pack",
+                          name: isCozy ? "Cozy Girl Theme Bundle" : "Weeb Theme Bundle",
                           cost: "$1.99",
-                          themes: ["one-piece", "demon-slayer", "jujutsu-kaisen"],
+                          themes: isCozy ? cozyThemes : ["one-piece", "demon-slayer", "jujutsu-kaisen"],
                           targetTheme: selectedTheme
                         });
                         setCheckoutStep("idle");
@@ -439,6 +448,15 @@ export default function MySpaceProfileDialog({
                     </option>
                     <option value="jujutsu-kaisen">
                       {isThemeUnlocked("jujutsu-kaisen") ? "Jujutsu Kaisen 💀" : "Jujutsu Kaisen 💀 (🔒 Weeb Pack - $1.99)"}
+                    </option>
+                    <option value="animal-crossing">
+                      {isThemeUnlocked("animal-crossing") ? "Animal Crossing 🍃" : "Animal Crossing 🍃 (🔒 Cozy Pack - $1.99)"}
+                    </option>
+                    <option value="spirited-away">
+                      {isThemeUnlocked("spirited-away") ? "Spirited Away 🏮" : "Spirited Away 🏮 (🔒 Cozy Pack - $1.99)"}
+                    </option>
+                    <option value="matcha-tea">
+                      {isThemeUnlocked("matcha-tea") ? "Matcha Tea 🍵" : "Matcha Tea 🍵 (🔒 Cozy Pack - $1.99)"}
                     </option>
                   </select>
                   <div style={{ marginTop: "4px", fontSize: "10px" }}>
@@ -634,7 +652,7 @@ export default function MySpaceProfileDialog({
             </div>
 
             {/* Favorited Bars Section */}
-            <div className="beveled-box" style={{ marginTop: "12px", padding: "6px", border: "1px solid var(--player-border)" }}>
+            <div className="top8-container beveled-box" style={{ marginTop: "12px", padding: "6px" }}>
               <div className="section-header-orange" style={{ margin: "0 0 8px 0" }}>{username}'s Favorited Bars</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {favoritedVenueList.length === 0 ? (
@@ -834,7 +852,9 @@ export default function MySpaceProfileDialog({
                     <p style={{ margin: "0 0 6px 0" }}><strong>Item:</strong> {checkoutProduct.name}</p>
                     <p style={{ margin: "0 0 6px 0" }}><strong>Price:</strong> {checkoutProduct.cost}</p>
                     <p style={{ margin: 0, fontSize: "11px", color: "#666" }}>
-                      Unlocks 3 themes: One Piece ⚓, Demon Slayer ⚔️, and Jujutsu Kaisen 💀.
+                      {checkoutProduct.id === "cozy_pack"
+                        ? "Unlocks 3 themes: Animal Crossing 🍃, Spirited Away 🏮, and Matcha Tea 🍵."
+                        : "Unlocks 3 themes: One Piece ⚓, Demon Slayer ⚔️, and Jujutsu Kaisen 💀."}
                     </p>
                   </div>
                   <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "10px" }}>
@@ -862,7 +882,7 @@ export default function MySpaceProfileDialog({
                     Purchase Successful!
                   </p>
                   <p style={{ margin: "6px 0", fontSize: "12px", textAlign: "center" }}>
-                    The "Weeb" Anime themes bundle has been permanently unlocked and credited to your node.
+                    The "{checkoutProduct.id === "cozy_pack" ? "Cozy Girl" : "Weeb"}" themes bundle has been permanently unlocked and credited to your node.
                   </p>
                   <div style={{ display: "flex", justifyContent: "center", marginTop: "10px" }}>
                     <button className="default" onClick={handleCloseSuccess}>OK</button>
