@@ -118,8 +118,11 @@ export default function MySpaceProfileDialog({
         setTimeout(async () => {
           if (onSaveProfile) {
             const isCozy = checkoutProduct.id === "cozy_pack";
+            const isBadBitch = checkoutProduct.id === "badbitch_pack";
             const themesToUnlock = isCozy 
-              ? ["animal-crossing", "spirited-away", "matcha-tea"] 
+              ? ["animal-crossing", "spirited-away", "matcha-tea"]
+              : isBadBitch
+              ? ["8-ball", "long-nails", "sheer"]
               : ["one-piece", "demon-slayer", "jujutsu-kaisen"];
             const updatedUnlocked = [
               ...new Set([...ownedThemes, ...themesToUnlock])
@@ -263,6 +266,9 @@ export default function MySpaceProfileDialog({
       case "animal-crossing": return "myspace-theme-animalcrossing";
       case "spirited-away": return "myspace-theme-spiritedaway";
       case "matcha-tea": return "myspace-theme-matchatea";
+      case "8-ball": return "myspace-theme-8ball";
+      case "long-nails": return "myspace-theme-longnails";
+      case "sheer": return "myspace-theme-sheer";
       default: return "myspace-theme-classic";
     }
   };
@@ -418,14 +424,16 @@ export default function MySpaceProfileDialog({
                       const selectedTheme = e.target.value;
                       if (!isThemeUnlocked(selectedTheme)) {
                         const cozyThemes = ["animal-crossing", "spirited-away", "matcha-tea"];
+                        const badBitchThemes = ["8-ball", "long-nails", "sheer"];
                         const isCozy = cozyThemes.includes(selectedTheme);
-                        setCheckoutProduct({
-                          id: isCozy ? "cozy_pack" : "weeb_pack",
-                          name: isCozy ? "Cozy Girl Theme Bundle" : "Weeb Theme Bundle",
-                          cost: "$1.99",
-                          themes: isCozy ? cozyThemes : ["one-piece", "demon-slayer", "jujutsu-kaisen"],
-                          targetTheme: selectedTheme
-                        });
+                        const isBadBitch = badBitchThemes.includes(selectedTheme);
+                        setCheckoutProduct(
+                          isCozy
+                            ? { id: "cozy_pack", name: "Cozy Girl Theme Bundle", cost: "$1.99", themes: cozyThemes, targetTheme: selectedTheme }
+                            : isBadBitch
+                            ? { id: "badbitch_pack", name: "Bad Bitch Theme Bundle", cost: "$1.99", themes: badBitchThemes, targetTheme: selectedTheme }
+                            : { id: "weeb_pack", name: "Weeb Theme Bundle", cost: "$1.99", themes: ["one-piece", "demon-slayer", "jujutsu-kaisen"], targetTheme: selectedTheme }
+                        );
                         setCheckoutStep("idle");
                         setShowCheckoutModal(true);
                       } else {
@@ -457,6 +465,15 @@ export default function MySpaceProfileDialog({
                     </option>
                     <option value="matcha-tea">
                       {isThemeUnlocked("matcha-tea") ? "Matcha Tea 🍵" : "Matcha Tea 🍵 (🔒 Cozy Pack - $1.99)"}
+                    </option>
+                    <option value="8-ball">
+                      {isThemeUnlocked("8-ball") ? "8-Ball 🎱" : "8-Ball 🎱 (🔒 Bad Bitch Pack - $1.99)"}
+                    </option>
+                    <option value="long-nails">
+                      {isThemeUnlocked("long-nails") ? "Long Nails 💅" : "Long Nails 💅 (🔒 Bad Bitch Pack - $1.99)"}
+                    </option>
+                    <option value="sheer">
+                      {isThemeUnlocked("sheer") ? "Sheer ✨" : "Sheer ✨ (🔒 Bad Bitch Pack - $1.99)"}
                     </option>
                   </select>
                   <div style={{ marginTop: "4px", fontSize: "10px" }}>
