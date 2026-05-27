@@ -1481,24 +1481,57 @@ export default function App() {
                       </h2>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "10px", color: "#555" }}>Mood:</span>
-                        <span 
-                          style={{ 
-                            fontSize: "10px", 
-                            backgroundColor: "#ffffff", 
-                            color: "#000000", 
-                            padding: "2px 6px 2px 4px", 
-                            border: "1px inset", 
-                            boxShadow: "inset -1px -1px #fff, inset 1px 1px #808080",
-                            fontWeight: "bold",
-                            borderRadius: 0,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px"
-                          }}
-                        >
-                          <span>{userDoc?.mood || "Chillin' 😎"}</span>
-                          <span style={{ fontSize: "7px", color: "#808080" }}>▼</span>
-                        </span>
+                        <div style={{ position: "relative", display: "inline-block" }}>
+                          <select
+                            value={userDoc?.mood || "Chillin' 😎"}
+                            onChange={(e) => handleSaveProfile({ mood: e.target.value })}
+                            style={{ 
+                              fontSize: "10px", 
+                              backgroundColor: "#ffffff", 
+                              color: "#000000", 
+                              padding: "2px 14px 2px 4px", 
+                              border: "1px inset", 
+                              boxShadow: "inset -1px -1px #fff, inset 1px 1px #808080",
+                              fontWeight: "bold",
+                              borderRadius: 0,
+                              appearance: "none",
+                              WebkitAppearance: "none",
+                              cursor: "pointer",
+                              outline: "none"
+                            }}
+                          >
+                            <option>Chillin' 😎</option>
+                            <option>Excited ⚡</option>
+                            <option>Crushing 😍</option>
+                            <option>Mellow 🎧</option>
+                            <option>Melancholy 🌧️</option>
+                            <option>Goth Emo 🖤</option>
+                            <option>Ready to Party 🍹</option>
+                            <option>Hyper 🤪</option>
+                            <option>Sassy 💅</option>
+                            <option>Pissed 😡</option>
+                            <option>Bored 😑</option>
+                            <option>Creative 🎨</option>
+                            <option>Spacey 🚀</option>
+                            <option>Tired 😴</option>
+                            <option>Reflective 📖</option>
+                            <option>Rebellious ✊</option>
+                            <option>Nostalgic 📼</option>
+                          </select>
+                          <span 
+                            style={{ 
+                              fontSize: "7px", 
+                              color: "#808080", 
+                              position: "absolute", 
+                              right: "5px", 
+                              top: "50%", 
+                              transform: "translateY(-50%)", 
+                              pointerEvents: "none" 
+                            }}
+                          >
+                            ▼
+                          </span>
+                        </div>
                       </div>
                       <p style={{ margin: "2px 0 6px 0", fontSize: "11px", color: "#666", fontStyle: "italic", textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>
                         "{userDoc?.headline || "everyone's favorite dial-up partner"}"
