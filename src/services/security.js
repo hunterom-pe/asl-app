@@ -6,14 +6,21 @@ import { Device } from "@capacitor/device";
  * @returns {Promise<string>} Device UUID
  */
 export async function getDeviceUuid() {
+  let nativeId = null;
   if (Capacitor.isNativePlatform()) {
     try {
       const info = await Device.getId();
-      return info.uuid;
+      // @capacitor/device returns { identifier: string } in newer versions
+      nativeId = info.identifier || info.uuid;
     } catch (e) {
       console.error("Error getting Capacitor device ID:", e);
     }
   }
+  
+  if (nativeId) {
+    return nativeId;
+  }
+
   // Web fallback: persistent simulated UUID stored in localStorage
   let uuid = localStorage.getItem("asl_device_uuid");
   if (!uuid) {

@@ -1094,7 +1094,7 @@ export default function App() {
         ...updatedData,
         uid: currentUser.uid,
         email: currentUser.email || "",
-        uuid: deviceUuid,
+        uuid: deviceUuid || "unknown_uuid",
         lastLogin: Date.now()
       }, true);
       setSelectedProfileUser(prev => prev ? {
