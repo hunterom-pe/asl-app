@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import TitleBar from "./components/TitleBar";
 import AuthDialog from "./components/AuthDialog";
 import Wizard from "./components/Wizard";
@@ -75,7 +75,51 @@ export default function App() {
   const [venuePosts, setVenuePosts] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [activeChatConnection, setActiveChatConnection] = useState(null);
-  const [navigationScreen, setNavigationScreen] = useState("home");
+  const [navigationScreen, _setNavigationScreen] = useState("home");
+  const [navigationHistory, setNavigationHistory] = useState(["home"]);
+  const navigationHistoryRef = useRef(navigationHistory);
+
+  useEffect(() => {
+    navigationHistoryRef.current = navigationHistory;
+  }, [navigationHistory]);
+
+  const setNavigationScreen = (target) => {
+    const screen = typeof target === "function" ? target(navigationScreen) : target;
+    if (screen === navigationScreen) return;
+    
+    if (screen === "home") {
+      setNavigationHistory(["home"]);
+    } else {
+      setNavigationHistory(prev => {
+        // Filter out transient screens from the prior history
+        const cleaned = prev.filter(s => !["login", "proof", "post", "sysop", "chat"].includes(s));
+        if (cleaned[cleaned.length - 1] === screen) return cleaned;
+        return [...cleaned, screen];
+      });
+    }
+    _setNavigationScreen(screen);
+  };
+
+  const handleNavigateBack = () => {
+    const history = navigationHistoryRef.current;
+    if (history.length <= 1) return;
+    
+    const newHistory = [...history];
+    const currentScreen = newHistory.pop();
+    const prevScreen = newHistory[newHistory.length - 1];
+    
+    // Perform cleanup for specific screens
+    if (currentScreen === "profile") {
+      setSelectedProfileUser(null);
+    } else if (currentScreen === "chat") {
+      setActiveChatId(null);
+    } else if (currentScreen === "proof") {
+      setShowProofDialog(false);
+    }
+    
+    setNavigationHistory(newHistory);
+    _setNavigationScreen(prevScreen);
+  };
   const [selectedCity, setSelectedCity] = useState("");
   const [hideWelcome, setHideWelcome] = useState(() => {
     return localStorage.getItem("asl_hide_welcome") === "true";
@@ -127,6 +171,50 @@ export default function App() {
       setShowSplash(false);
     }, 3000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Swipe to go back gesture (from left edge)
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 1) {
+        const clientX = e.touches[0].clientX;
+        // Check if the touch starts near the left edge (within 40px)
+        if (clientX < 40) {
+          touchStartX = clientX;
+          touchStartY = e.touches[0].clientY;
+        } else {
+          touchStartX = 0;
+          touchStartY = 0;
+        }
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      if (touchStartX === 0) return;
+      
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+        
+        // Swipe to the right: deltaX > 100px and mostly horizontal (|deltaY| < 0.6 * deltaX)
+        if (deltaX > 100 && Math.abs(deltaY) < deltaX * 0.6) {
+          handleNavigateBack();
+        }
+      }
+      touchStartX = 0;
+      touchStartY = 0;
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
   }, []);
 
   // 1. App Startup: Load Device UUID, sign in anonymously, and fetch venues
