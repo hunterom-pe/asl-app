@@ -1744,6 +1744,99 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* GUEST: Global Feed */}
+                <div className="myspace-orange-box" style={{ display: "flex", flexDirection: "column", padding: 0, borderRadius: "4px" }}>
+                  <div className="section-header-orange" style={{ margin: 0, backgroundColor: "#003399", color: "#fff", borderLeft: "4px solid #ff007f", fontWeight: "bold" }}>
+                    🌍 Global Feed ({globalActivePosts.length})
+                  </div>
+                  <div style={{ backgroundColor: "#fff", display: "flex", flexDirection: "column", borderRadius: "0 0 4px 4px" }}>
+                    {globalActivePosts.length === 0 ? (
+                      <div style={{ padding: "30px 20px", textAlign: "center", fontSize: "13px", color: "#666", fontStyle: "italic", lineHeight: "1.5" }}>
+                        <div style={{ fontSize: "28px", marginBottom: "8px" }}>📭</div>
+                        No active missed connection reports in this feed.
+                      </div>
+                    ) : (
+                      globalActivePosts.map((post, idx, currentArr) => {
+                        const timeAgo = (() => {
+                          const diff = Date.now() - (post.timestamp || post.encounterTimestamp || 0);
+                          const mins = Math.floor(diff / 60000);
+                          const hrs = Math.floor(diff / 3600000);
+                          const days = Math.floor(diff / 86400000);
+                          if (mins < 2) return "just now";
+                          if (mins < 60) return `${mins}m ago`;
+                          if (hrs < 24) return `${hrs}h ago`;
+                          return `${days}d ago`;
+                        })();
+                        
+                        return (
+                          <div 
+                            key={post.id}
+                            style={{
+                              borderBottom: idx < currentArr.length - 1 ? "1px solid #e0e8f5" : "none",
+                              padding: "12px",
+                              cursor: "pointer"
+                            }}
+                            onClick={() => {
+                              const venue = venues.find(v => v.fsq_id === post.venueId);
+                              if (venue) handleSelectVenue(venue);
+                            }}
+                          >
+                            {/* Header: User avatar + name + mood */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span style={{ fontSize: "16px" }}>{post.emoji_avatar || "👥"}</span>
+                                <span 
+                                  style={{ fontWeight: "bold", fontSize: "12px", color: "#003399", textDecoration: "underline" }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenProfile(post.userId, {
+                                      username: post.username || "Anonymous Connection",
+                                      mood: post.mood || "Chillin' 😎",
+                                      bio: post.bio || "Just browsing the local spots.",
+                                      profileTheme: post.profileTheme || "classic",
+                                      emoji_avatar: post.emoji_avatar || "👥🥃💖"
+                                    });
+                                  }}
+                                >
+                                  {post.username || "Anonymous"}
+                                </span>
+                                <span style={{ fontSize: "10px", color: "#b30059", backgroundColor: "#ffccd8", padding: "1px 5px", borderRadius: "8px", fontWeight: "bold" }}>
+                                  {post.mood || "Chillin'"}
+                                </span>
+                              </div>
+                              <span style={{ fontSize: "10px", color: "#999" }}>{timeAgo}</span>
+                            </div>
+
+                            {/* Speech Bubble / Message Content */}
+                            <div style={{ 
+                              backgroundColor: "#f7f9fc", 
+                              border: "1px solid #dcdcdc", 
+                              borderRadius: "6px", 
+                              padding: "8px 10px", 
+                              fontSize: "12px", 
+                              color: "#333", 
+                              lineHeight: "1.4",
+                              marginBottom: "6px"
+                            }}>
+                              {parseBBCode(post.text)}
+                            </div>
+
+                            {/* Footer details: Venue name & timestamp */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10px", color: "#888" }}>
+                              <span style={{ color: "#003399", fontWeight: "bold" }}>
+                                📍 {post.venueName} ({post.venueZone})
+                              </span>
+                              <span>
+                                🕐 {post.date} · {post.timeRange}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
                 {/* asl Status Dashboard */}
                 <div className="myspace-orange-box" style={{ backgroundColor: "#f2f6ff", border: "1px solid #6699ff", borderRadius: "4px", padding: 0 }}>
                   <div className="section-header-orange" style={{ margin: 0, backgroundColor: "#6699ff", color: "#fff", borderLeft: "4px solid #003399" }}>
