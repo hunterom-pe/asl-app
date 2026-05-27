@@ -3,7 +3,7 @@ import TitleBar from "./TitleBar";
 import { searchVenues } from "../services/foursquare";
 import { moderateTextWithGemini } from "../services/security";
 
-const EMOJI_PRESETS = ["👥", "🥃", "💖", "😎", "⚡", "😍", "🎧", "🌧️", "🖤", "🍹", "🌵", "🥂", "🍕", "🎱", "👾", "💾", "📟", "🛹", "🎸", "🎤", "🍻", "🔥", "✨", "🌟", "🎈", "🎉"];
+
 
 const SPAM_ROASTS = [
   "You sure you want to post that, fam?",
@@ -40,6 +40,8 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null, cur
     const pad = (n) => String(n).padStart(2, '0');
     return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
   });
+  const [minDatetime] = useState(() => new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString().slice(0, 16));
+  const [maxDatetime] = useState(() => new Date().toISOString().slice(0, 16));
 
   // Step 3 Form States (Mad Libs Matrix)
   const [fieldA, setFieldA] = useState("");
@@ -49,24 +51,11 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null, cur
   const [showHelp, setShowHelp] = useState(false);
 
   // Step 4 Profile Customization States
-  const [username, setUsername] = useState(currentUserProfile?.username || "");
-  const [mood, setMood] = useState(currentUserProfile?.mood || "Chillin' 😎");
-  const [bio, setBio] = useState(currentUserProfile?.bio || "Just browsing the local nightlife spots.");
-  const [profileTheme, setProfileTheme] = useState(currentUserProfile?.profileTheme || "classic");
-  const [emojiAvatar, setEmojiAvatar] = useState(currentUserProfile?.emoji_avatar || "👥🥃💖");
-
-  const handleAddEmoji = (em) => {
-    const current = Array.from(emojiAvatar);
-    if (current.length < 3) {
-      setEmojiAvatar(current.concat(em).join(""));
-    }
-  };
-
-  const handleRemoveEmojiAtIndex = (index) => {
-    const current = Array.from(emojiAvatar);
-    current.splice(index, 1);
-    setEmojiAvatar(current.join(""));
-  };
+  const username = currentUserProfile?.username || "";
+  const mood = currentUserProfile?.mood || "Chillin' 😎";
+  const bio = currentUserProfile?.bio || "Just browsing the local nightlife spots.";
+  const profileTheme = currentUserProfile?.profileTheme || "classic";
+  const emojiAvatar = currentUserProfile?.emoji_avatar || "👥🥃💖";
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
@@ -304,8 +293,8 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null, cur
                     type="datetime-local" 
                     value={datetimeVal} 
                     onChange={(e) => setDatetimeVal(e.target.value)} 
-                    min={new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString().slice(0, 16)}
-                    max={new Date().toISOString().slice(0, 16)}
+                    min={minDatetime}
+                    max={maxDatetime}
                     style={{ width: "100%" }}
                   />
                 </div>

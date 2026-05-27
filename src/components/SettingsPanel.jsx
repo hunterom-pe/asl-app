@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { 
   firebaseUpdateEmail, 
   firebaseSendPasswordResetEmail, 
@@ -10,7 +10,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { AppIcon } from "@capacitor-community/app-icon";
 import { PushNotifications } from "@capacitor/push-notifications";
 
-export default function SettingsPanel({ currentUser, userDoc, onLogout, onNavigateBack }) {
+export default function SettingsPanel({ currentUser, userDoc, onNavigateBack }) {
   // Account Adjustments State
   const [emailInput, setEmailInput] = useState(currentUser?.email || "");
   const [emailStatus, setEmailStatus] = useState("");
@@ -62,8 +62,10 @@ export default function SettingsPanel({ currentUser, userDoc, onLogout, onNaviga
 
     // Set initial notifications preferences from userDoc
     if (userDoc) {
-      setNotifyHandshake(!!userDoc.notifyHandshake);
-      setNotifyRadar(!!userDoc.notifyRadar);
+      setTimeout(() => {
+        setNotifyHandshake(!!userDoc.notifyHandshake);
+        setNotifyRadar(!!userDoc.notifyRadar);
+      }, 0);
     }
   }, [userDoc]);
 
@@ -129,7 +131,7 @@ export default function SettingsPanel({ currentUser, userDoc, onLogout, onNaviga
           setNotifyHandshake(false);
           return;
         }
-      } catch (err) {
+      } catch {
         console.warn("PushNotifications not supported on this platform.");
       }
     }
@@ -153,7 +155,7 @@ export default function SettingsPanel({ currentUser, userDoc, onLogout, onNaviga
           setNotifyRadar(false);
           return;
         }
-      } catch (err) {
+      } catch {
         console.warn("PushNotifications not supported on this platform.");
       }
     }

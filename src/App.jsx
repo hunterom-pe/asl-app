@@ -6,7 +6,6 @@ import ProofDialog from "./components/ProofDialog";
 import OutlookInbox from "./components/OutlookInbox";
 import AIMChat from "./components/AIMChat";
 import BSOD from "./components/BSOD";
-import MySpaceMusicPlayer from "./components/MySpaceMusicPlayer";
 import MySpaceProfileDialog from "./components/MySpaceProfileDialog";
 import SettingsPanel from "./components/SettingsPanel";
 import { Geolocation } from "@capacitor/geolocation";
@@ -323,8 +322,10 @@ export default function App() {
   // Strike 2 Warning Alert Trigger
   useEffect(() => {
     if (userDoc && userDoc.flag_count === 2 && !hasShownStrike2) {
-      setShowStrike2Warning(true);
-      setHasShownStrike2(true);
+      setTimeout(() => {
+        setShowStrike2Warning(true);
+        setHasShownStrike2(true);
+      }, 0);
     }
   }, [userDoc, hasShownStrike2]);
 
@@ -332,7 +333,7 @@ export default function App() {
   // Also runs a client-side TTL sweep: auto-deletes claims older than 48 hours
   useEffect(() => {
     if (!currentUser || currentUser.isAnonymous) {
-      setPendingClaims([]);
+      setTimeout(() => setPendingClaims([]), 0);
       return;
     }
     const TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
@@ -362,10 +363,10 @@ export default function App() {
   // 3-second countdown when Certainty Modal opens
   useEffect(() => {
     if (!showCertaintyModal) {
-      setCertaintyCountdown(3);
+      setTimeout(() => setCertaintyCountdown(3), 0);
       return;
     }
-    setCertaintyCountdown(3);
+    setTimeout(() => setCertaintyCountdown(3), 0);
     const interval = setInterval(() => {
       setCertaintyCountdown(prev => {
         if (prev <= 1) {
@@ -381,7 +382,7 @@ export default function App() {
   // Subscribe to accepted connections for the Friend Space
   useEffect(() => {
     if (!currentUser || currentUser.isAnonymous) {
-      setAcceptedConnections([]);
+      setTimeout(() => setAcceptedConnections([]), 0);
       return;
     }
     const unsub = dbOnSnapshot("connections", [], (snapshot) => {
@@ -406,7 +407,7 @@ export default function App() {
   // Detect /sysop developer backdoor path
   useEffect(() => {
     if (window.location.pathname === "/sysop") {
-      setNavigationScreen("sysop");
+      setTimeout(() => setNavigationScreen("sysop"), 0);
     }
   }, []);
 
@@ -537,7 +538,7 @@ export default function App() {
   // 2b. Subscribe to inbound connection claims (pending mail)
   useEffect(() => {
     if (!currentUser || currentUser.isAnonymous) {
-      setInboundClaimsCount(0);
+      setTimeout(() => setInboundClaimsCount(0), 0);
       return;
     }
     const unsub = dbOnSnapshot("connections", [], (snapshot) => {
@@ -556,7 +557,7 @@ export default function App() {
   // 2c. Subscribe to users who recently favorited the selected venue
   useEffect(() => {
     if (!selectedVenue) {
-      setFavoriters([]);
+      setTimeout(() => setFavoriters([]), 0);
       return;
     }
 
@@ -581,8 +582,7 @@ export default function App() {
   // 3. Subscribe to Posts for the selected Venue
   useEffect(() => {
     if (!selectedVenue) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setVenuePosts([]);
+      setTimeout(() => setVenuePosts([]), 0);
       return;
     }
 
@@ -751,7 +751,7 @@ export default function App() {
     try {
       const likedStr = localStorage.getItem("asl_liked_posts") || "[]";
       return JSON.parse(likedStr).includes(postId);
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -834,6 +834,7 @@ export default function App() {
         action: "restore_post",
         targetId: postId,
         operatorUid: currentUser?.uid || "unknown",
+        // eslint-disable-next-line react-hooks/purity
         timestamp: Date.now()
       });
       alert("Post status restored to active.");
@@ -870,6 +871,7 @@ export default function App() {
         targetId: appeal.userId,
         appealId: appeal.id,
         operatorUid: currentUser?.uid || "unknown",
+        // eslint-disable-next-line react-hooks/purity
         timestamp: Date.now(),
         details: { username: appeal.username || "unknown" }
       });

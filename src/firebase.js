@@ -742,15 +742,11 @@ export const dbAddDoc = async (collectionName, data) => {
     return { id: newId };
   }
   if (collectionName === "posts") {
-    try {
-      const { getFunctions, httpsCallable } = await import("firebase/functions");
-      const functions = getFunctions();
-      const createPostSecure = httpsCallable(functions, "createPostSecure");
-      const result = await createPostSecure(data);
-      return { id: result.data.id };
-    } catch (err) {
-      throw err;
-    }
+    const { getFunctions, httpsCallable } = await import("firebase/functions");
+    const functions = getFunctions();
+    const createPostSecure = httpsCallable(functions, "createPostSecure");
+    const result = await createPostSecure(data);
+    return { id: result.data.id };
   }
 
   const colRef = collection(realDb, collectionName);

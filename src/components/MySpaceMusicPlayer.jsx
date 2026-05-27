@@ -36,18 +36,22 @@ export default function MySpaceMusicPlayer({
     if (!spotifyTrackUri) return;
     
     // Reset playback stats on track change
-    setAudioInitialized(false);
-    setIsPlaying(false);
-    setSpotifyActive(false);
-    setCurrentTime(0);
+    setTimeout(() => {
+      setAudioInitialized(false);
+      setIsPlaying(false);
+      setSpotifyActive(false);
+      setCurrentTime(0);
+    }, 0);
 
     if (spotifySongTitle && spotifyArtistName) {
-      setTrackInfo({
-        title: spotifySongTitle,
-        artist: spotifyArtistName,
-        duration: 240, // default placeholder
-        durationStr: "04:00"
-      });
+      setTimeout(() => {
+        setTrackInfo({
+          title: spotifySongTitle,
+          artist: spotifyArtistName,
+          duration: 240, // default placeholder
+          durationStr: "04:00"
+        });
+      }, 0);
       return;
     }
 

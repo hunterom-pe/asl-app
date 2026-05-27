@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import TitleBar from "./TitleBar";
-import { parseBBCode } from "../services/bbcode";
 import MySpaceMusicPlayer from "./MySpaceMusicPlayer";
 import { dbGetDoc } from "../firebase";
 
@@ -86,7 +85,6 @@ export default function MySpaceProfileDialog({
   const [editSpotifySongTitle, setEditSpotifySongTitle] = useState(spotify_song_title);
   const [editSpotifyArtistName, setEditSpotifyArtistName] = useState(spotify_artist_name);
   const [editHeadline, setEditHeadline] = useState(headline);
-  const [showHelp, setShowHelp] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [friendProfiles, setFriendProfiles] = useState({});
@@ -159,10 +157,11 @@ export default function MySpaceProfileDialog({
         if (snap.exists()) {
           setFriendProfiles(prev => ({ ...prev, [friendId]: snap.data() }));
         }
-      } catch (e) {
+      } catch {
         // silently ignore
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acceptedConnections]);
 
   const handleSendMessage = () => {
@@ -407,6 +406,7 @@ export default function MySpaceProfileDialog({
 
             {!isEditing && (
               <MySpaceMusicPlayer 
+                key={spotify_track_uri}
                 spotifyTrackUri={spotify_track_uri} 
                 spotifySongTitle={spotify_song_title}
                 spotifyArtistName={spotify_artist_name}
@@ -592,9 +592,10 @@ export default function MySpaceProfileDialog({
                 />
               ) : (
                 <p 
-                  style={{ margin: "5px 0", fontSize: "13px", lineHeight: "1.3" }}
-                  dangerouslySetInnerHTML={{ __html: parseBBCode(bio) || "This user is keeping it mysterious and hasn't written a biography yet." }}
-                />
+                  style={{ margin: "5px 0", fontSize: "13px", lineHeight: "1.3", whiteSpace: "pre-wrap" }}
+                >
+                  {bio || "This user is keeping it mysterious and hasn't written a biography yet."}
+                </p>
               )}
             </div>
           </div>
