@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { 
   firebaseSignInWithEmailAndPassword, 
-  firebaseLinkWithCredential 
+  firebaseLinkWithCredential,
+  firebaseLinkWithOAuth,
+  firebaseSignInWithOAuth
 } from "../firebase";
 
 /**
@@ -70,6 +72,29 @@ export default function AuthDialog({ onClose, onSuccess }) {
         }
         triggerError(msg);
       }
+    }
+  };
+
+  const handleOAuthSignIn = async (providerName) => {
+    setErrorMsg("");
+    setLoading(true);
+    try {
+      if (activeTab === "register") {
+        await firebaseLinkWithOAuth(providerName);
+      } else {
+        await firebaseSignInWithOAuth(providerName);
+      }
+      setLoading(false);
+      onSuccess();
+    } catch (err) {
+      setLoading(false);
+      let msg = err.message;
+      if (msg.includes("popup-closed-by-user")) {
+        msg = "Authentication window was closed before completion.";
+      } else if (msg.includes("auth/credential-already-in-use")) {
+        msg = "This social account is already linked to another user.";
+      }
+      triggerError(msg);
     }
   };
 
@@ -168,6 +193,59 @@ export default function AuthDialog({ onClose, onSuccess }) {
                   </div>
                 )}
               </fieldset>
+
+              <div style={{ display: "flex", alignItems: "center", margin: "10px 0", gap: "8px" }}>
+                <div style={{ flex: 1, borderBottom: "1px dashed #808080" }}></div>
+                <span style={{ fontSize: "10px", color: "#666", fontWeight: "bold" }}>OR CONNECT WITH</span>
+                <div style={{ flex: 1, borderBottom: "1px dashed #808080" }}></div>
+              </div>
+              
+              <div style={{ display: "flex", gap: "8px", width: "100%", marginBottom: "6px" }}>
+                <button
+                  type="button"
+                  onClick={() => handleOAuthSignIn("google")}
+                  disabled={loading}
+                  style={{
+                    flex: 1,
+                    minHeight: "36px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    borderRadius: 0,
+                    border: "1px solid #000",
+                    boxShadow: "inset -1px -1px #808080, inset 1px 1px #fff, 1px 1px 0px #000",
+                    backgroundColor: "#dfdfdf"
+                  }}
+                >
+                  🌐 Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOAuthSignIn("apple")}
+                  disabled={loading}
+                  style={{
+                    flex: 1,
+                    minHeight: "36px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    borderRadius: 0,
+                    border: "1px solid #000",
+                    boxShadow: "inset -1px -1px #808080, inset 1px 1px #fff, 1px 1px 0px #000",
+                    backgroundColor: "#dfdfdf"
+                  }}
+                >
+                   Apple
+                </button>
+              </div>
 
               <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "4px" }}>
                 <button 

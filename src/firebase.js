@@ -9,7 +9,11 @@ import {
   onAuthStateChanged,
   updateEmail,
   sendPasswordResetEmail,
-  deleteUser
+  deleteUser,
+  linkWithPopup,
+  signInWithPopup,
+  GoogleAuthProvider,
+  OAuthProvider
 } from "firebase/auth";
 import { 
   getFirestore, 
@@ -613,6 +617,77 @@ class MockAuth {
     return { user: this.currentUser };
   }
 
+  async linkWithOAuth(email) {
+    if (!this.currentUser) throw new Error("No anonymous user to link.");
+
+    const authPool = JSON.parse(localStorage.getItem("asl_auth_users") || "{}");
+    authPool[email] = { uid: this.currentUser.uid, password: "oauth_linked" };
+    localStorage.setItem("asl_auth_users", JSON.stringify(authPool));
+
+    this.currentUser.isAnonymous = false;
+    this.currentUser.email = email;
+
+    const db = simulatedStore.getDb();
+    if (db.users[this.currentUser.uid]) {
+      db.users[this.currentUser.uid].isAnonymous = false;
+      db.users[this.currentUser.uid].email = email;
+      simulatedStore.saveDb(db);
+    }
+
+    this.saveSession();
+    return { user: this.currentUser };
+  }
+
+  async signInWithOAuth(email) {
+    const authPool = JSON.parse(localStorage.getItem("asl_auth_users") || "{}");
+    let account = authPool[email];
+    
+    if (!account) {
+      const newUid = "oauth_" + Math.random().toString(36).slice(2, 11);
+      account = { uid: newUid, password: "oauth_linked" };
+      authPool[email] = account;
+      localStorage.setItem("asl_auth_users", JSON.stringify(authPool));
+      
+      const db = simulatedStore.getDb();
+      db.users[newUid] = {
+        uid: newUid,
+        isAnonymous: false,
+        email: email,
+        flag_count: 0,
+        banned: false,
+        uuid: localStorage.getItem("asl_device_uuid") || "",
+        createdAt: Date.now()
+      };
+      simulatedStore.saveDb(db);
+    }
+
+    const db = simulatedStore.getDb();
+    const userDoc = db.users[account.uid] || {
+      uid: account.uid,
+      isAnonymous: false,
+      email: email,
+      flag_count: 0,
+      banned: false,
+      uuid: ""
+    };
+
+    if (userDoc.banned || userDoc.flag_count >= 3) {
+      throw new Error("auth/user-disabled: This user has been banned.");
+    }
+
+    this.currentUser = {
+      uid: account.uid,
+      isAnonymous: false,
+      email: email,
+      flag_count: userDoc.flag_count,
+      banned: userDoc.banned,
+      uuid: userDoc.uuid
+    };
+
+    this.saveSession();
+    return { user: this.currentUser };
+  }
+
   async signOut() {
     this.currentUser = null;
     this.saveSession();
@@ -645,6 +720,44 @@ export const firebaseLinkWithCredential = async (email, password) => {
   }
   const credential = EmailAuthProvider.credential(email, password);
   return linkWithCredential(realAuth.currentUser, credential);
+};
+
+export const firebaseLinkWithOAuth = async (providerName) => {
+  if (isSimulated) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const mockEmail = providerName === "google" ? "hunter.google@gmail.com" : "hunter.apple@icloud.com";
+    return mockAuthInstance.linkWithOAuth(mockEmail);
+  }
+  
+  let provider;
+  if (providerName === "google") {
+    provider = new GoogleAuthProvider();
+  } else if (providerName === "apple") {
+    provider = new OAuthProvider("apple.com");
+  } else {
+    throw new Error("Unsupported provider: " + providerName);
+  }
+  
+  return linkWithPopup(realAuth.currentUser, provider);
+};
+
+export const firebaseSignInWithOAuth = async (providerName) => {
+  if (isSimulated) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const mockEmail = providerName === "google" ? "hunter.google@gmail.com" : "hunter.apple@icloud.com";
+    return mockAuthInstance.signInWithOAuth(mockEmail);
+  }
+  
+  let provider;
+  if (providerName === "google") {
+    provider = new GoogleAuthProvider();
+  } else if (providerName === "apple") {
+    provider = new OAuthProvider("apple.com");
+  } else {
+    throw new Error("Unsupported provider: " + providerName);
+  }
+  
+  return signInWithPopup(realAuth, provider);
 };
 
 export const firebaseSignInWithEmailAndPassword = async (email, password) => {
