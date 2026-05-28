@@ -4,7 +4,8 @@ import {
   dbOnSnapshot, 
   dbUpdateDoc, 
   dbDeleteDoc, 
-  dbAddDoc
+  dbAddDoc,
+  dbGetDoc
 } from "../firebase";
 
 /**
@@ -66,8 +67,22 @@ export default function OutlookInbox({ currentUser, userDoc, onClose, onOpenChat
     if (!selectedConn) return;
 
     try {
+      // Fetch sender details to attach to the post
+      const senderDoc = await dbGetDoc("users", selectedConn.senderId);
+      const senderUsername = senderDoc.exists() ? (senderDoc.data().username || "Anonymous") : "Anonymous";
+
       // 1. Upgrade connection status to accepted
       await dbUpdateDoc("connections", selectedConn.id, { status: "accepted" });
+
+      // 1.5 Update original post with success state
+      if (selectedConn.postId) {
+        await dbUpdateDoc("posts", selectedConn.postId, {
+          status: "connected",
+          connectedWithId: selectedConn.senderId,
+          connectedWithUsername: senderUsername,
+          connectedProofText: selectedConn.proofText
+        });
+      }
 
       // 2. Create the associated AIM chat window
       const chatRef = await dbAddDoc("chats", {

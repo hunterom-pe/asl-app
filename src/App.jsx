@@ -2388,6 +2388,11 @@ export default function App() {
 
                       <div className="myspace-comment-right">
                         <div>
+                          {post.status === "connected" && (
+                            <div style={{ backgroundColor: "#e2fbe2", border: "2px outset #4CAF50", padding: "8px", marginBottom: "12px", textAlign: "center", fontWeight: "bold", color: "#006400", fontSize: "14px", textShadow: "1px 1px 0px #fff" }}>
+                              ✨ CONNECTION MADE: {post.username || "Anonymous"} found {post.connectedWithUsername || "someone"} ✨
+                            </div>
+                          )}
                           <div className="myspace-comment-date">
                             📅 Encountered: <strong>{post.date}</strong> ({post.timeRange})
                           </div>
@@ -2395,6 +2400,11 @@ export default function App() {
                             className="myspace-comment-text"
                             dangerouslySetInnerHTML={{ __html: `"${parseBBCode(post.text)}"` }}
                           />
+                          {post.status === "connected" && post.connectedProofText && (
+                            <div style={{ marginTop: "12px", padding: "8px", backgroundColor: "#f0f0f0", borderLeft: "4px solid #000080", fontStyle: "italic", fontSize: "12px", color: "#333" }}>
+                              <strong>{post.connectedWithUsername || "Response"}:</strong> "{post.connectedProofText}"
+                            </div>
+                          )}
                         </div>
 
                         <div className="myspace-comment-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
@@ -2417,7 +2427,14 @@ export default function App() {
                           </button>
                           
                           <div style={{ display: "flex", gap: "6px" }}>
-                            {post.userId !== currentUser?.uid ? (
+                            {post.status === "connected" ? (
+                              <button 
+                                disabled
+                                style={{ minHeight: "24px", padding: "2px 8px", color: "#888", border: "1px solid #aaa", backgroundColor: "#e0e0e0" }}
+                              >
+                                🔒 Already Connected
+                              </button>
+                            ) : post.userId !== currentUser?.uid ? (
                               <>
                                 <button 
                                   onClick={() => runWithAuthenticationCheck(() => handleThatWasMe(post))}
