@@ -43,6 +43,19 @@ export default function MySpaceMusicPlayer({
       setCurrentTime(0);
     }, 0);
 
+    // Hardcode the default track metadata to avoid hitting oembed API issues
+    if (spotifyTrackUri === "spotify:track:4PTG3Z6ehGkBF3zI7YSp6g" && !spotifySongTitle && !spotifyArtistName) {
+      setTimeout(() => {
+        setTrackInfo({
+          title: "Such Great Heights",
+          artist: "The Postal Service",
+          duration: 266,
+          durationStr: "04:26"
+        });
+      }, 0);
+      return;
+    }
+
     if (spotifySongTitle && spotifyArtistName) {
       setTimeout(() => {
         setTrackInfo({
@@ -54,6 +67,7 @@ export default function MySpaceMusicPlayer({
       }, 0);
       return;
     }
+
 
     const fetchMetadata = async () => {
       try {
