@@ -813,10 +813,14 @@ export default function App() {
       // ── Daily Post Limit Check (max 3 posts per 24 hours) ───────────────
       const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
       const postsSnap = await dbGetDocs("posts", [
-        queryWhere("userId", "==", currentUser.uid),
-        queryWhere("timestamp", ">=", oneDayAgo)
+        queryWhere("userId", "==", currentUser.uid)
       ]);
-      if (postsSnap.size >= 3) {
+      const recentPostsCount = postsSnap.docs.filter(doc => {
+        const data = doc.data();
+        const timestamp = data.timestamp || data.encounterTimestamp || 0;
+        return timestamp >= oneDayAgo;
+      }).length;
+      if (recentPostsCount >= 3) {
         const rateLimitMsg = "Rate Limit: You have exceeded the daily limit of 3 posts per 24 hours. Keep the node clean!";
         alert(rateLimitMsg);
         throw new Error(rateLimitMsg);
