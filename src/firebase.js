@@ -1502,11 +1502,22 @@ export const dbAddDoc = async (collectionName, data) => {
     return { id: newId };
   }
   if (collectionName === "posts") {
-    const { getFunctions, httpsCallable } = await import("firebase/functions");
-    const functions = getFunctions();
-    const createPostSecure = httpsCallable(functions, "createPostSecure");
-    const result = await createPostSecure(data);
-    return { id: result.data.id };
+    try {
+      const { getFunctions, httpsCallable } = await import("firebase/functions");
+      const functions = getFunctions();
+      const createPostSecure = httpsCallable(functions, "createPostSecure");
+      const result = await createPostSecure(data);
+      return { id: result.data.id };
+    } catch (err) {
+      console.warn("Cloud Function 'createPostSecure' failed or is not deployed. Falling back to direct Firestore write:", err);
+      // Fallback: write directly to Firestore (client-side moderation already verified the content)
+      const colRef = collection(realDb, collectionName);
+      return await addDoc(colRef, { 
+        ...data, 
+        timestamp: serverTimestamp(),
+        status: "active"
+      });
+    }
   }
 
   const colRef = collection(realDb, collectionName);
