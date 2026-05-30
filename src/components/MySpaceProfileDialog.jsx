@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import TitleBar from "./TitleBar";
 import MySpaceMusicPlayer from "./MySpaceMusicPlayer";
-import { dbGetDoc } from "../firebase";
+import { dbGetDoc, dbAddDoc, dbGetDocs } from "../firebase";
+import { Share } from "@capacitor/share";
+import { isIAPSupported, fetchProductDetails, purchaseProduct, restorePurchases } from "../services/iap";
 
 const extractSpotifyTrackId = (input) => {
   const trimmed = input.trim();
@@ -67,6 +69,7 @@ export default function MySpaceProfileDialog({
   onOpenChat,
   userId,
   currentUserId,
+  currentUserDoc,
   onSaveProfile,
   unlockedThemes = [],
   favorited_bars = [],
@@ -78,6 +81,8 @@ export default function MySpaceProfileDialog({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editUsername, setEditUsername] = useState(username);
+
+  const isAdmin = currentUserDoc?.isAdmin || false;
 
   const isUserOnline = () => {
     if (userId === currentUserId) return true;
@@ -112,52 +117,268 @@ export default function MySpaceProfileDialog({
   const [editHeadline, setEditHeadline] = useState(headline);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [profileError, setProfileError] = useState("");
+
+  const handleShareProfile = async () => {
+    const shareText = `Check out ${username}'s profile on asl! Add them to your Top 8!`;
+    const shareUrl = `asl://profile/${userId}`;
+    
+    try {
+      const canShareResult = await Share.canShare();
+      if (canShareResult && canShareResult.value) {
+        await Share.share({
+          title: `asl profile: ${username}`,
+          text: shareText,
+          url: shareUrl,
+          dialogTitle: `Share ${username}'s profile`
+        });
+      } else {
+        navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        alert("Link copied to clipboard!");
+      }
+    } catch (err) {
+      console.warn("Sharing failed, falling back to clipboard:", err);
+      try {
+        navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        alert("Link copied to clipboard!");
+      } catch (clipErr) {
+        console.error("Clipboard copy failed:", clipErr);
+        alert("Could not share or copy link.");
+      }
+    }
+  };
   const [friendProfiles, setFriendProfiles] = useState({});
+
+  // Guestbook states
+  const [guestbookEntries, setGuestbookEntries] = useState([]);
+  const [isLoadingGuestbook, setIsLoadingGuestbook] = useState(false);
+  const [showSignGuestbook, setShowSignGuestbook] = useState(false);
+  const [newGuestbookMessage, setNewGuestbookMessage] = useState("");
+  const [newGuestbookStamp, setNewGuestbookStamp] = useState("glitter_heart");
+  const [isSubmittingGuestbook, setIsSubmittingGuestbook] = useState(false);
+
+  const GUESTBOOK_STAMPS = {
+    glitter_heart: { emoji: "💖", label: "Glitter Heart" },
+    pixel_rose: { emoji: "🌹", label: "Pixel Rose" },
+    ufo: { emoji: "🛸", label: "UFO" },
+    flame: { emoji: "🔥", label: "Flame" },
+    skateboard: { emoji: "🛹", label: "Skateboard" },
+    skull: { emoji: "☠️", label: "Skull" },
+    floppy_disk: { emoji: "💾", label: "Floppy Disk" }
+  };
+
+  const getTimestampMs = (ts) => {
+    if (!ts) return Date.now();
+    if (typeof ts === "number") return ts;
+    if (ts.toMillis) return ts.toMillis();
+    if (ts.seconds) return ts.seconds * 1000;
+    if (ts.toDate) return ts.toDate().getTime();
+    return Date.now();
+  };
+
+  const formatDate = (ts) => {
+    const ms = getTimestampMs(ts);
+    return new Date(ms).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  };
+
+  const fetchGuestbook = async () => {
+    if (!userId) return;
+    setIsLoadingGuestbook(true);
+    try {
+      const snap = await dbGetDocs("guestbook_entries", [
+        { type: "where", field: "profileUid", op: "==", value: userId }
+      ]);
+      const entries = snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      // Sort client-side by timestamp descending
+      entries.sort((a, b) => getTimestampMs(b.timestamp) - getTimestampMs(a.timestamp));
+      setGuestbookEntries(entries);
+    } catch (err) {
+      console.error("Error loading guestbook:", err);
+    } finally {
+      setIsLoadingGuestbook(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGuestbook();
+  }, [userId]);
+
+  const parseBBCode = (text) => {
+    if (!text) return "";
+    
+    // Escape HTML first to prevent XSS injection
+    let escaped = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+    // Replace [b]content[/b] -> <strong>content</strong>
+    escaped = escaped.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, "<strong>$1</strong>");
+    
+    // Replace [i]content[/i] -> <em>content</em>
+    escaped = escaped.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, "<em>$1</em>");
+    
+    // Replace [rainbow]content[/rainbow] -> <span class="rainbow-text">content</span>
+    escaped = escaped.replace(/\[rainbow\]([\s\S]*?)\[\/rainbow\]/gi, '<span class="rainbow-text">$1</span>');
+
+    return { __html: escaped };
+  };
+
+  const insertBBCode = (tag) => {
+    const textarea = document.getElementById("guestbook-textarea");
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const selected = text.substring(start, end);
+    const after = text.substring(end);
+
+    const replacement = `[${tag}]${selected}[/${tag}]`;
+    setNewGuestbookMessage(before + replacement + after);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + tag.length + 2, start + tag.length + 2 + selected.length);
+    }, 0);
+  };
+
+  const handleSignGuestbook = async (e) => {
+    e.preventDefault();
+    if (!newGuestbookMessage.trim()) return;
+    setIsSubmittingGuestbook(true);
+    try {
+      let signerName = "Anonymous Partner";
+      let signerAvatar = "👥";
+      if (currentUserId) {
+        const userSnap = await dbGetDoc("users", currentUserId);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          signerName = userData.username || signerName;
+          signerAvatar = userData.emoji_avatar || signerAvatar;
+        }
+      }
+
+      await dbAddDoc("guestbook_entries", {
+        profileUid: userId,
+        authorUid: currentUserId || "anonymous",
+        authorName: signerName,
+        authorAvatar: signerAvatar,
+        message: newGuestbookMessage,
+        stamp: newGuestbookStamp
+      });
+
+      setNewGuestbookMessage("");
+      setNewGuestbookStamp("glitter_heart");
+      setShowSignGuestbook(false);
+      await fetchGuestbook();
+    } catch (err) {
+      console.error("Error signing guestbook:", err);
+      alert("Failed to sign guestbook: " + err.message);
+    } finally {
+      setIsSubmittingGuestbook(false);
+    }
+  };
 
   // IAP Simulation states
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [checkoutProduct, setCheckoutProduct] = useState(null);
   const [checkoutStep, setCheckoutStep] = useState("idle");
   const [checkoutStatusText, setCheckoutStatusText] = useState("");
+  const [restoring, setRestoring] = useState(false);
 
-  const ownedThemes = unlockedThemes && unlockedThemes.length ? unlockedThemes : ["classic", "glitter", "cyberpunk", "sunset", "goth", "pokemon"];
+  const ownedThemes = unlockedThemes && unlockedThemes.length ? unlockedThemes : ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"];
 
   const isThemeUnlocked = (themeName) => {
-    const freeThemes = ["classic", "glitter", "cyberpunk", "sunset", "goth", "pokemon"];
+    const freeThemes = ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"];
     if (freeThemes.includes(themeName)) return true;
     return ownedThemes.includes(themeName);
   };
 
-  const handleSimulatePurchase = () => {
+  const handleSimulatePurchase = async () => {
     setCheckoutStep("processing");
     setCheckoutStatusText("CONNECTING TO APPLE APP STORE...");
     
-    setTimeout(() => {
-      setCheckoutStatusText("PROCESSING SECURE TRANSACTION...");
-      
-      setTimeout(() => {
-        setCheckoutStatusText("VERIFYING PURCHASES RECEIPT...");
+    try {
+      const result = await purchaseProduct(checkoutProduct.id);
+      if (result.success) {
+        setCheckoutStatusText("VERIFYING PURCHASE RECEIPT...");
+        await new Promise(resolve => setTimeout(resolve, 800));
         
-        setTimeout(async () => {
-          if (onSaveProfile) {
-            const isCozy = checkoutProduct.id === "cozy_pack";
-            const isBadBitch = checkoutProduct.id === "badbitch_pack";
-            const themesToUnlock = isCozy 
-              ? ["animal-crossing", "spirited-away", "matcha-tea"]
-              : isBadBitch
-              ? ["8-ball", "long-nails", "sheer"]
-              : ["one-piece", "demon-slayer", "jujutsu-kaisen"];
-            const updatedUnlocked = [
-              ...new Set([...ownedThemes, ...themesToUnlock])
-            ];
-            await onSaveProfile({
-              unlockedThemes: updatedUnlocked
-            });
-          }
-          setCheckoutStep("success");
-        }, 800);
-      }, 800);
-    }, 800);
+        if (onSaveProfile) {
+          const isCozy = checkoutProduct.id === "cozy_pack";
+          const isBadBitch = checkoutProduct.id === "badbitch_pack";
+          const themesToUnlock = isCozy 
+            ? ["animal-crossing", "spirited-away", "matcha-tea"]
+            : isBadBitch
+            ? ["8-ball", "long-nails", "sheer"]
+            : ["one-piece", "demon-slayer", "jujutsu-kaisen"];
+          const updatedUnlocked = [
+            ...new Set([...ownedThemes, ...themesToUnlock])
+          ];
+          await onSaveProfile(currentUserId, {
+            unlockedThemes: updatedUnlocked
+          });
+        }
+        setCheckoutStep("success");
+      } else {
+        alert("Purchase Failed: " + (result.error || "User cancelled or transaction error."));
+        setCheckoutStep("idle");
+        setShowCheckoutModal(false);
+      }
+    } catch (err) {
+      console.error("Purchase failed:", err);
+      alert("Billing Gateway Error. Please try again.");
+      setCheckoutStep("idle");
+      setShowCheckoutModal(false);
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    setRestoring(true);
+    try {
+      const restoredIds = await restorePurchases();
+      if (restoredIds.length > 0) {
+        let themesToUnlock = [];
+        if (restoredIds.includes("cozy_pack")) {
+          themesToUnlock.push("animal-crossing", "spirited-away", "matcha-tea");
+        }
+        if (restoredIds.includes("badbitch_pack")) {
+          themesToUnlock.push("8-ball", "long-nails", "sheer");
+        }
+        if (restoredIds.includes("weeb_pack")) {
+          themesToUnlock.push("one-piece", "demon-slayer", "jujutsu-kaisen");
+        }
+        
+        if (themesToUnlock.length > 0 && onSaveProfile) {
+          const updatedUnlocked = [
+            ...new Set([...ownedThemes, ...themesToUnlock])
+          ];
+          await onSaveProfile(currentUserId, {
+            unlockedThemes: updatedUnlocked
+          });
+          alert("Success: Restored " + restoredIds.length + " package(s) and credited themes to your profile!");
+        } else {
+          alert("Restore Complete: No previous theme pack purchases found on your App Store account.");
+        }
+      } else {
+        alert("Restore Complete: No previous theme pack purchases found on this device.");
+      }
+    } catch (err) {
+      console.error("Restore failed:", err);
+      alert("Failed to restore purchases: " + err.message);
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const handleCloseSuccess = () => {
@@ -261,7 +482,7 @@ export default function MySpaceProfileDialog({
     }
 
     if (onSaveProfile) {
-      onSaveProfile({
+      onSaveProfile(userId, {
         username: editUsername,
         mood: editMood,
         bio: editBio,
@@ -283,7 +504,7 @@ export default function MySpaceProfileDialog({
       case "cyberpunk": return "myspace-theme-cyberpunk";
       case "sunset": return "myspace-theme-sunset";
       case "goth": return "myspace-theme-goth";
-      case "pokemon": return "myspace-theme-pokemon";
+      case "gameboy": return "myspace-theme-gameboy";
       case "one-piece": return "myspace-theme-onepiece";
       case "demon-slayer": return "myspace-theme-demonslayer";
       case "jujutsu-kaisen": return "myspace-theme-jujutsukaisen";
@@ -453,20 +674,25 @@ export default function MySpaceProfileDialog({
                     value={editProfileTheme} 
                     onChange={(e) => {
                       const selectedTheme = e.target.value;
-                      if (!isThemeUnlocked(selectedTheme)) {
+                      if (!isThemeUnlocked(selectedTheme) && userId === currentUserId) {
                         const cozyThemes = ["animal-crossing", "spirited-away", "matcha-tea"];
                         const badBitchThemes = ["8-ball", "long-nails", "sheer"];
                         const isCozy = cozyThemes.includes(selectedTheme);
                         const isBadBitch = badBitchThemes.includes(selectedTheme);
-                        setCheckoutProduct(
-                          isCozy
-                            ? { id: "cozy_pack", name: "Cozy Girl Theme Bundle", cost: "$1.99", themes: cozyThemes, targetTheme: selectedTheme }
-                            : isBadBitch
-                            ? { id: "badbitch_pack", name: "Bad Bitch Theme Bundle", cost: "$1.99", themes: badBitchThemes, targetTheme: selectedTheme }
-                            : { id: "weeb_pack", name: "Weeb Theme Bundle", cost: "$1.99", themes: ["one-piece", "demon-slayer", "jujutsu-kaisen"], targetTheme: selectedTheme }
-                        );
+                        const packId = isCozy ? "cozy_pack" : isBadBitch ? "badbitch_pack" : "weeb_pack";
+                        const packName = isCozy ? "Cozy Girl Theme Bundle" : isBadBitch ? "Bad Bitch Theme Bundle" : "Weeb Theme Bundle";
+                        const packThemes = isCozy ? cozyThemes : isBadBitch ? badBitchThemes : ["one-piece", "demon-slayer", "jujutsu-kaisen"];
+                        
+                        setCheckoutProduct({ id: packId, name: packName, cost: "$1.99", themes: packThemes, targetTheme: selectedTheme });
                         setCheckoutStep("idle");
                         setShowCheckoutModal(true);
+                        
+                        fetchProductDetails([packId]).then(products => {
+                          const prod = products.find(p => p.productIdentifier === packId);
+                          if (prod) {
+                            setCheckoutProduct(prev => prev ? { ...prev, cost: prod.price, name: prod.title } : null);
+                          }
+                        }).catch(err => console.log("Failed loading real IAP metadata:", err));
                       } else {
                         setEditProfileTheme(selectedTheme);
                       }
@@ -478,7 +704,7 @@ export default function MySpaceProfileDialog({
                     <option value="cyberpunk">Cyberpunk 🟢</option>
                     <option value="sunset">Sunset 🌅</option>
                     <option value="goth">Goth 🖤</option>
-                    <option value="pokemon">Pokémon ⚡</option>
+                    <option value="gameboy">Gameboy 🎮</option>
                     <option value="one-piece">
                       {isThemeUnlocked("one-piece") ? "One Piece ⚓" : "One Piece ⚓ (🔒 Weeb Pack - $1.99)"}
                     </option>
@@ -507,22 +733,32 @@ export default function MySpaceProfileDialog({
                       {isThemeUnlocked("sheer") ? "Sheer ✨" : "Sheer ✨ (🔒 Bad Bitch Pack - $1.99)"}
                     </option>
                   </select>
-                  <div style={{ marginTop: "4px", fontSize: "10px" }}>
-                    <button
-                      type="button"
-                      style={{ background: "none", border: "none", color: "blue", textDecoration: "underline", cursor: "pointer", padding: 0 }}
-                      onClick={async () => {
-                        if (onSaveProfile) {
-                          await onSaveProfile({
-                            unlockedThemes: ["classic", "glitter", "cyberpunk", "sunset", "goth", "pokemon"]
-                          });
-                          alert("Theme purchases reset! Anime themes are now locked again.");
-                        }
-                      }}
-                    >
-                      Reset Theme Purchases (Developer Test)
-                    </button>
-                  </div>
+                  {userId === currentUserId && (
+                    <div style={{ marginTop: "4px", fontSize: "10px", display: "flex", gap: "10px" }}>
+                      <button
+                        type="button"
+                        style={{ background: "none", border: "none", color: "blue", textDecoration: "underline", cursor: "pointer", padding: 0 }}
+                        onClick={async () => {
+                          if (onSaveProfile) {
+                            await onSaveProfile(currentUserId, {
+                              unlockedThemes: ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"]
+                            });
+                            alert("Theme purchases reset! Anime themes are now locked again.");
+                          }
+                        }}
+                      >
+                        Reset Theme Purchases (Developer Test)
+                      </button>
+                      <button
+                        type="button"
+                        style={{ background: "none", border: "none", color: "green", textDecoration: "underline", cursor: "pointer", padding: 0, fontWeight: "bold" }}
+                        onClick={handleRestorePurchases}
+                        disabled={restoring}
+                      >
+                        {restoring ? "Restoring..." : "Restore App Store Purchases"}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="profile-edit-card" style={{ display: "flex", flexDirection: "column", gap: "8px", margin: "4px 0" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -602,11 +838,18 @@ export default function MySpaceProfileDialog({
                   <div className="contact-action" onClick={() => alert(`${username} added to friends list!`)}>
                     ➕ Add to Friends
                   </div>
-                  <div className="contact-action" onClick={() => alert("Profile shared!")}>
+                  <div className="contact-action" onClick={handleShareProfile}>
                     🔗 Share Profile
                   </div>
                   <div className="contact-action" onClick={() => alert("Reported to system sysop.")}>
                     ⚠️ Report User
+                  </div>
+                  <div className="contact-action" style={{ gridColumn: "span 2" }} onClick={() => {
+                    setNewGuestbookMessage("");
+                    setNewGuestbookStamp("glitter_heart");
+                    setShowSignGuestbook(true);
+                  }}>
+                    ✍️ Sign {username}'s Guestbook
                   </div>
                 </div>
               </div>
@@ -636,67 +879,66 @@ export default function MySpaceProfileDialog({
             <div className="top8-container beveled-box">
               <div className="section-header-orange">{username}'s Friend Space</div>
 
-              {acceptedConnections.length === 0 ? (
-                /* No real connections yet — show just Tom */
-                <div style={{ padding: "10px 6px" }}>
-                  <div
-                    className="top8-friend"
-                    onClick={() => onOpenProfile && onOpenProfile("tom", {
-                      username: "Tom",
-                      mood: "Friendly 🙂",
-                      bio: "Co-founder of asl. Let me know if you have any questions!",
-                      profileTheme: "classic",
-                      emoji_avatar: "👥🥃💖"
-                    })}
-                    style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", width: "60px" }}
-                  >
-                    <span style={{ fontSize: "28px", lineHeight: 1 }}>👥🥃💖</span>
-                    <span className="friend-name" style={{ maxWidth: "60px" }}>Tom</span>
-                  </div>
-                  <p style={{ fontSize: "10px", color: "#888", fontStyle: "italic", marginTop: "8px", lineHeight: "1.4" }}>
-                    Your friend space fills up when someone matches your "That Was Me!" — or you match theirs.
-                  </p>
-                </div>
-              ) : (
-                <div className="top8-grid">
-                  {/* Tom is always first */}
-                  <div
-                    className="top8-friend"
-                    onClick={() => onOpenProfile && onOpenProfile("tom", {
-                      username: "Tom",
-                      mood: "Friendly 🙂",
-                      bio: "Co-founder of asl.",
-                      profileTheme: "classic",
-                      emoji_avatar: "👥🥃💖"
-                    })}
-                  >
-                    <span style={{ fontSize: "28px", lineHeight: 1 }}>👥🥃💖</span>
-                    <span className="friend-name">Tom</span>
-                  </div>
-
-                  {/* Real accepted connections */}
-                  {acceptedConnections.slice(0, 7).map(conn => {
-                    const profile = friendProfiles[conn.userId];
-                    const displayName = profile?.username || conn.username || "Connection";
-                    const displayEmoji = profile?.emoji_avatar || "👥🥃💖";
-                    return (
-                      <div
-                        key={conn.userId}
-                        className="top8-friend"
-                        onClick={() => onOpenProfile && onOpenProfile(conn.userId, {
-                          username: displayName,
-                          mood: profile?.mood || "Chillin' 😎",
-                          bio: profile?.bio || "",
-                          profileTheme: profile?.profileTheme || "classic",
-                          emoji_avatar: displayEmoji
-                        })}
-                      >
-                        <span style={{ fontSize: "28px", lineHeight: 1 }}>{displayEmoji}</span>
-                        <span className="friend-name">{displayName}</span>
-                      </div>
-                    );
+              <div className="top8-grid">
+                {/* Tom is always first */}
+                <div
+                  className="top8-friend"
+                  onClick={() => onOpenProfile && onOpenProfile("tom", {
+                    username: "Tom",
+                    mood: "Friendly 🙂",
+                    bio: "Remember me?",
+                    headline: "Everyones first friend!",
+                    profileTheme: "classic",
+                    emoji_avatar: "👥🥃💖"
                   })}
+                >
+                  <span style={{ fontSize: "28px", lineHeight: 1 }}>👥🥃💖</span>
+                  <span className="friend-name">Tom</span>
                 </div>
+
+                {/* Hunter is always second */}
+                <div
+                  className="top8-friend"
+                  onClick={() => onOpenProfile && onOpenProfile("hunter", {
+                    username: "Hunter",
+                    mood: "Coding 💻",
+                    bio: "Founder of asl. Let me know if you have any questions!",
+                    profileTheme: "classic",
+                    emoji_avatar: "⚡🖥️🛹"
+                  })}
+                >
+                  <span style={{ fontSize: "28px", lineHeight: 1 }}>⚡🖥️🛹</span>
+                  <span className="friend-name">Hunter</span>
+                </div>
+
+                {/* Real accepted connections */}
+                {acceptedConnections.slice(0, 6).map(conn => {
+                  const profile = friendProfiles[conn.userId];
+                  const displayName = profile?.username || conn.username || "Connection";
+                  const displayEmoji = profile?.emoji_avatar || "👥🥃💖";
+                  return (
+                    <div
+                      key={conn.userId}
+                      className="top8-friend"
+                      onClick={() => onOpenProfile && onOpenProfile(conn.userId, {
+                        username: displayName,
+                        mood: profile?.mood || "Chillin' 😎",
+                        bio: profile?.bio || "",
+                        profileTheme: profile?.profileTheme || "classic",
+                        emoji_avatar: displayEmoji
+                      })}
+                    >
+                      <span style={{ fontSize: "28px", lineHeight: 1 }}>{displayEmoji}</span>
+                      <span className="friend-name">{displayName}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {acceptedConnections.length === 0 && (
+                <p style={{ fontSize: "10px", color: "#888", fontStyle: "italic", marginTop: "8px", padding: "0 4px", lineHeight: "1.4" }}>
+                  Your friend space fills up when someone matches your "That Was Me!" — or you match theirs.
+                </p>
               )}
             </div>
 
@@ -726,10 +968,132 @@ export default function MySpaceProfileDialog({
           </div>
         </div>
 
+        {/* Guestbook Section */}
+        <div className="top8-container beveled-box" style={{ marginTop: "16px", padding: "6px" }}>
+          <div className="section-header-orange" style={{ margin: "0 0 8px 0" }}>{username}'s Guestbook</div>
+          
+          {isLoadingGuestbook ? (
+            <div style={{ padding: "12px", textAlign: "center", fontSize: "11px", fontStyle: "italic" }}>
+              Loading guestbook signatures...
+            </div>
+          ) : guestbookEntries.length === 0 ? (
+            <div style={{ padding: "20px", textAlign: "center", color: "#888", fontSize: "11px", fontStyle: "italic", background: "#f9f9f9", border: "1px inset #808080" }} className="guestbook-ledger">
+              This guestbook is empty. Be the first to sign it!
+            </div>
+          ) : (
+            <div className="guestbook-ledger">
+              {guestbookEntries.map((entry) => (
+                <div key={entry.id} className="guestbook-entry-row">
+                  <div className="guestbook-stamp-col" title={GUESTBOOK_STAMPS[entry.stamp]?.label || "Stamp"}>
+                    {GUESTBOOK_STAMPS[entry.stamp]?.emoji || "✍️"}
+                  </div>
+                  <div className="guestbook-msg-col">
+                    <span dangerouslySetInnerHTML={parseBBCode(entry.message)} />
+                  </div>
+                  <div className="guestbook-meta-col">
+                    <a onClick={() => {
+                      if (onOpenProfile) {
+                        onOpenProfile(entry.authorUid, {
+                          username: entry.authorName,
+                          emoji_avatar: entry.authorAvatar,
+                          mood: "Vibing",
+                          bio: "Retro traveler...",
+                          profileTheme: "classic"
+                        });
+                      }
+                    }}>
+                      {entry.authorAvatar} {entry.authorName}
+                    </a>
+                    <span style={{ display: "block", marginTop: "2px" }}>{formatDate(entry.timestamp)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Sign Guestbook Modal Window Overlay */}
+        {showSignGuestbook && (
+          <div style={{
+            position: "fixed",
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999
+          }}>
+            <form onSubmit={handleSignGuestbook} className="window" style={{ width: "320px", fontFamily: "inherit" }}>
+              <div className="title-bar">
+                <div className="title-bar-text">Sign {username}'s Guestbook</div>
+                <div className="title-bar-controls">
+                  <button type="button" aria-label="Close" onClick={() => setShowSignGuestbook(false)} />
+                </div>
+              </div>
+              <div className="window-body" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <p style={{ margin: 0, fontSize: "11px" }}>Leave a message for {username}:</p>
+                
+                {/* BBCode shortcuts */}
+                <div style={{ display: "flex", gap: "4px" }}>
+                  <button type="button" onClick={() => insertBBCode("b")} style={{ minWidth: "24px", padding: "2px 4px", fontSize: "10px" }}><b>B</b></button>
+                  <button type="button" onClick={() => insertBBCode("i")} style={{ minWidth: "24px", padding: "2px 4px", fontSize: "10px" }}><i>I</i></button>
+                  <button type="button" onClick={() => insertBBCode("rainbow")} style={{ padding: "2px 6px", fontSize: "10px", fontWeight: "bold" }}>🌈 Rainbow</button>
+                </div>
+
+                <textarea
+                  id="guestbook-textarea"
+                  rows="4"
+                  value={newGuestbookMessage}
+                  onChange={(e) => setNewGuestbookMessage(e.target.value)}
+                  placeholder="Type your message here..."
+                  maxLength="250"
+                  style={{ width: "100%", boxSizing: "border-box", resize: "none" }}
+                  required
+                />
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold" }}>Select a Retro Stamp:</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", background: "#ffffff", padding: "6px", border: "1px inset #808080", borderRadius: 0 }}>
+                    {Object.entries(GUESTBOOK_STAMPS).map(([key, stampInfo]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setNewGuestbookStamp(key)}
+                        style={{
+                          width: "32px",
+                          height: "32px",
+                          fontSize: "20px",
+                          padding: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: newGuestbookStamp === key ? "2px solid #000080" : "1px solid #dfdfdf",
+                          background: newGuestbookStamp === key ? "#fff0f5" : "#f0f0f0",
+                          boxShadow: newGuestbookStamp === key ? "inset 1px 1px #808080" : "none"
+                        }}
+                        title={stampInfo.label}
+                      >
+                        {stampInfo.emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", marginTop: "4px" }}>
+                  <button type="button" onClick={() => setShowSignGuestbook(false)} style={{ width: "70px" }}>Cancel</button>
+                  <button type="submit" disabled={isSubmittingGuestbook} style={{ width: "100px", fontWeight: "bold" }}>
+                    {isSubmittingGuestbook ? "Signing..." : "Sign Guestbook"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* Profile Operations — at the very bottom, only visible to profile owner */}
-        {userId === currentUserId && (
+        {(userId === currentUserId || isAdmin) && (
           <div className="contact-box" style={{ marginTop: "16px" }}>
-            <div className="contact-box-header">Profile Operations</div>
+            <div className="contact-box-header">{userId === currentUserId ? "Profile Operations" : `Moderate ${username}'s Profile`}</div>
             <div style={{ padding: "10px", display: "flex", flexDirection: "column", gap: "6px" }}>
               {isEditing ? (
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -760,12 +1124,20 @@ export default function MySpaceProfileDialog({
                   </button>
                 </div>
               ) : (
-                <button 
-                  onClick={() => setIsEditing(true)} 
-                  style={{ width: "100%", minHeight: "42px", fontSize: "14px" }}
-                >
-                  ⚙️ Edit My Profile
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <button 
+                    onClick={() => setIsEditing(true)} 
+                    style={{ width: "100%", minHeight: "42px", fontSize: "14px" }}
+                  >
+                    {userId === currentUserId ? "⚙️ Edit My Profile" : "⚙️ Moderate Profile Details"}
+                  </button>
+                  <button 
+                    onClick={handleShareProfile} 
+                    style={{ width: "100%", minHeight: "42px", fontSize: "14px" }}
+                  >
+                    🔗 Share My Profile
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -908,7 +1280,7 @@ export default function MySpaceProfileDialog({
                   </div>
                   <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "10px" }}>
                     <button onClick={() => setShowCheckoutModal(false)}>Cancel</button>
-                    <button className="default" onClick={handleSimulatePurchase}>Simulate Purchase</button>
+                    <button className="default" onClick={handleSimulatePurchase}>Buy Now</button>
                   </div>
                 </>
               )}

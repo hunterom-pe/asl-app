@@ -297,6 +297,144 @@ export const MOCK_VENUES = [
     open_end: 18,
     hours_display: "Open Daily 9 AM - 6 PM",
     amenities: ["Scenic Terrace", "Apple Merchandise Shop", "Pour-Over Coffee", "iPads for AR Campus Tour"]
+  },
+  // Nashville
+  {
+    fsq_id: "venue_santas",
+    name: "Santa's Pub",
+    address: "2225 Bransford Ave",
+    city: "Nashville",
+    zone: "South Nashville",
+    formatted_address: "2225 Bransford Ave, Nashville, TN 37204",
+    price: 1,
+    rating: 8.8,
+    categories: ["Dive Bar", "Karaoke"],
+    open_start: 16,
+    open_end: 2,
+    hours_display: "Open Daily 4 PM - 2 AM",
+    amenities: ["Cash Only", "Cold Beer", "Karaoke Stage", "Double-wide Trailer"]
+  },
+  {
+    fsq_id: "venue_dinos",
+    name: "Dino's Bar",
+    address: "411 Gallatin Ave",
+    city: "Nashville",
+    zone: "East Nashville",
+    formatted_address: "411 Gallatin Ave, Nashville, TN 37206",
+    price: 1,
+    rating: 9.0,
+    categories: ["Dive Bar", "Burgers"],
+    open_start: 12,
+    open_end: 3,
+    hours_display: "Open Daily Noon - 3 AM",
+    amenities: ["Late Night Kitchen", "Jukebox", "Outdoor Back Garden", "Legendary Burgers"]
+  },
+  {
+    fsq_id: "venue_fivespot",
+    name: "The 5 Spot",
+    address: "1006 Forrest Ave",
+    city: "Nashville",
+    zone: "East Nashville",
+    formatted_address: "1006 Forrest Ave, Nashville, TN 37206",
+    price: 2,
+    rating: 8.6,
+    categories: ["Music Venue", "Neighborhood Pub"],
+    open_start: 17,
+    open_end: 2,
+    hours_display: "Open Daily 5 PM - 2 AM",
+    amenities: ["Live Stage", "Dance Floor", "Keepin' It Weird Retro Vibe"]
+  },
+  // San Francisco
+  {
+    fsq_id: "venue_cinch",
+    name: "The Cinch Saloon",
+    address: "1723 Polk St",
+    city: "San Francisco",
+    zone: "Polk Gulch",
+    formatted_address: "1723 Polk St, San Francisco, CA 94109",
+    price: 1,
+    rating: 8.5,
+    categories: ["Historic Bar", "Neighborhood Pub"],
+    open_start: 12,
+    open_end: 2,
+    hours_display: "Open Daily 12 PM - 2 AM",
+    amenities: ["Pool Table", "Smoking Patio", "Retro Jukebox", "Credit Cards"]
+  },
+  {
+    fsq_id: "venue_lipo",
+    name: "Li Po Cocktail Lounge",
+    address: "916 Grant Ave",
+    city: "San Francisco",
+    zone: "Chinatown",
+    formatted_address: "916 Grant Ave, San Francisco, CA 94108",
+    price: 2,
+    rating: 8.9,
+    categories: ["Cocktail Lounge", "Chinese Restaurant"],
+    open_start: 14,
+    open_end: 2,
+    hours_display: "Open Daily 2 PM - 2 AM",
+    amenities: ["Famous Chinese Mai Tais", "Historic Neon Lantern", "Cozy Red Booths"]
+  },
+  {
+    fsq_id: "venue_zeitgeist",
+    name: "Zeitgeist",
+    address: "199 Valencia St",
+    city: "San Francisco",
+    zone: "Mission",
+    formatted_address: "199 Valencia St, San Francisco, CA 94103",
+    price: 2,
+    rating: 9.1,
+    categories: ["Beer Garden", "Neighborhood Dive"],
+    open_start: 11,
+    open_end: 2,
+    hours_display: "Open Daily 11 AM - 2 AM",
+    amenities: ["Massive Beer Garden", "Huge Draft List", "Bicycle Racks", "Bloody Marys"]
+  },
+  // Austin
+  {
+    fsq_id: "venue_barbarella",
+    name: "Barbarella",
+    address: "611 Red River St",
+    city: "Austin",
+    zone: "Red River Cultural District",
+    formatted_address: "611 Red River St, Austin, TX 78701",
+    price: 2,
+    rating: 8.7,
+    categories: ["Dance Club", "Nightclub"],
+    open_start: 21,
+    open_end: 2,
+    hours_display: "Open Daily 9 PM - 2 AM",
+    amenities: ["Theme Dance Nights", "Vibrant Light Shows", "Huge Patio", "Credit Cards"]
+  },
+  {
+    fsq_id: "venue_deepedy",
+    name: "Deep Eddy Cabaret",
+    address: "2315 Lake Austin Blvd",
+    city: "Austin",
+    zone: "West Austin",
+    formatted_address: "2315 Lake Austin Blvd, Austin, TX 78703",
+    price: 1,
+    rating: 9.2,
+    categories: ["Historic Tavern", "Dive Bar"],
+    open_start: 11,
+    open_end: 2,
+    hours_display: "Open Daily 11 AM - 2 AM",
+    amenities: ["Pitcher Beer", "Retro Jukebox", "Pool Tables", "Next to Deep Eddy Pool"]
+  },
+  {
+    fsq_id: "venue_lalas",
+    name: "Lala's Little Nugget",
+    address: "2207 Justin Ln",
+    city: "Austin",
+    zone: "North Austin",
+    formatted_address: "2207 Justin Ln, Austin, TX 78757",
+    price: 1,
+    rating: 8.9,
+    categories: ["Neighborhood Pub", "Themed Bar"],
+    open_start: 16,
+    open_end: 2,
+    hours_display: "Open Daily 4 PM - 2 AM",
+    amenities: ["Christmas Lights Year-Round", "Draft Beer", "Pool Table", "Nostalgic Santa Decor"]
   }
 ];
 
@@ -320,7 +458,19 @@ export async function searchVenues(query, filterCity = "") {
     let url = `https://api.foursquare.com/v3/places/search?query=${encodeURIComponent(query)}&categories=13000,10032&limit=10&fields=fsq_id,name,location,categories,price,rating,hours,features`;
     if (filterCity) {
       // Append region hints to help Foursquare resolve locations accurately
-      const nearHint = filterCity.toLowerCase() === "phoenix" ? "Phoenix, AZ" : "New York, NY";
+      let nearHint = "New York, NY";
+      const lowerCity = filterCity.toLowerCase();
+      if (lowerCity === "phoenix") {
+        nearHint = "Phoenix, AZ";
+      } else if (lowerCity === "nashville") {
+        nearHint = "Nashville, TN";
+      } else if (lowerCity === "san francisco") {
+        nearHint = "San Francisco, CA";
+      } else if (lowerCity === "austin") {
+        nearHint = "Austin, TX";
+      } else if (lowerCity === "cupertino") {
+        nearHint = "Cupertino, CA";
+      }
       url += `&near=${encodeURIComponent(nearHint)}`;
     }
     
@@ -392,8 +542,23 @@ export async function searchVenues(query, filterCity = "") {
 
       const rawLocality = (place.location?.locality || "").toLowerCase();
       const rawRegion = (place.location?.region || "").toLowerCase();
-      const isNY = rawLocality === "new york" || rawLocality === "brooklyn" || rawLocality === "manhattan" || rawRegion === "ny" || rawRegion === "new york";
-      const normalizedCity = isNY ? "New York" : "Phoenix";
+      
+      let normalizedCity = "Phoenix";
+      if (rawLocality === "new york" || rawLocality === "brooklyn" || rawLocality === "manhattan" || rawRegion === "ny" || rawRegion === "new york") {
+        normalizedCity = "New York";
+      } else if (rawLocality === "nashville" || rawRegion === "tn" || rawRegion === "tennessee") {
+        normalizedCity = "Nashville";
+      } else if (rawLocality === "san francisco" || rawRegion === "ca" || rawRegion === "california") {
+        if (rawLocality === "cupertino") {
+          normalizedCity = "Cupertino";
+        } else {
+          normalizedCity = "San Francisco";
+        }
+      } else if (rawLocality === "austin" || rawRegion === "tx" || rawRegion === "texas") {
+        normalizedCity = "Austin";
+      } else if (rawLocality === "cupertino") {
+        normalizedCity = "Cupertino";
+      }
 
       return {
         fsq_id: place.fsq_id,

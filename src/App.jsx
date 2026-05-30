@@ -9,6 +9,9 @@ import BSOD from "./components/BSOD";
 import MySpaceProfileDialog from "./components/MySpaceProfileDialog";
 import SettingsPanel from "./components/SettingsPanel";
 import { Geolocation } from "@capacitor/geolocation";
+import { App as CapApp } from "@capacitor/app";
+import { PushNotifications } from "@capacitor/push-notifications";
+import { Capacitor } from "@capacitor/core";
 
 
 import { 
@@ -293,7 +296,7 @@ export default function App() {
           email: user.email || "",
           uuid: deviceUuid,
           lastLogin: Date.now(),
-          unlockedThemes: ["classic", "glitter", "cyberpunk", "sunset", "goth", "pokemon"]
+          unlockedThemes: ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"]
         }, true);
 
         // Reviewer Mode Mock Data Injection
@@ -315,6 +318,7 @@ export default function App() {
                 username: "tom",
                 emoji_avatar: "👨",
                 bio: "Your first friend. I like music.",
+                headline: "Everyones first friend!",
                 homeCity: "Cupertino",
                 selectedCity: "Cupertino"
               }, true);
@@ -420,6 +424,83 @@ export default function App() {
 
     return () => unsubAuth();
   }, [deviceUuid]);
+
+  // 2.3. Capacitor Push Notifications Lifecycle
+  useEffect(() => {
+    if (!currentUser || currentUser.isAnonymous) return;
+
+    if (!Capacitor.isNativePlatform()) {
+      console.log("[Push Notifications] Running on web. Skipping native push registration.");
+      return;
+    }
+
+    const setupPushNotifications = async () => {
+      try {
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === "prompt") {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive === "granted") {
+          // Register with Apple/Google push servers
+          await PushNotifications.register();
+        } else {
+          console.warn("[Push Notifications] Permission denied by user.");
+        }
+      } catch (err) {
+        console.error("[Push Notifications] Error checking/requesting permissions:", err);
+      }
+    };
+
+    setupPushNotifications();
+
+    // Listener for successful APNs/FCM token registration
+    const registrationListener = PushNotifications.addListener("registration", async (token) => {
+      console.log("[Push Notifications] Device registered. Token:", token.value);
+      try {
+        // Save the device push token to user doc in Firestore
+        await dbSetDoc("users", currentUser.uid, {
+          pushToken: token.value,
+          pushTokenUpdatedAt: Date.now()
+        }, true);
+      } catch (err) {
+        console.error("[Push Notifications] Failed to save token to database:", err);
+      }
+    });
+
+    // Listener for registration errors
+    const errorListener = PushNotifications.addListener("registrationError", (err) => {
+      console.error("[Push Notifications] Registration failed with error:", err.error);
+    });
+
+    // Listener for foreground notifications
+    const receivedListener = PushNotifications.addListener("pushNotificationReceived", (notification) => {
+      console.log("[Push Notifications] Notification received in foreground:", notification);
+      
+      const title = notification.title || "asl Portal Notice";
+      const body = notification.body || "New signal incoming...";
+      
+      // Retro-style alert warning
+      alert(`📟 [asl Portal Alert]\n\n${title}\n${body}`);
+    });
+
+    // Listener for tapping a notification from outside
+    const actionListener = PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+      console.log("[Push Notifications] Notification tap action performed:", action);
+      
+      // Route page selection directly to connection requests list (mail folder)
+      setTimeout(() => {
+        setNavigationScreen("mail");
+      }, 500);
+    });
+
+    return () => {
+      registrationListener.then(l => l.remove());
+      errorListener.then(l => l.remove());
+      receivedListener.then(l => l.remove());
+      actionListener.then(l => l.remove());
+    };
+  }, [currentUser]);
 
   // 2.5. Active Presence Heartbeat Update
   useEffect(() => {
@@ -1151,21 +1232,93 @@ export default function App() {
     }
   };
 
+  const handleOpenProfileRef = useRef(null);
+  useEffect(() => {
+    handleOpenProfileRef.current = handleOpenProfile;
+  }, [handleOpenProfile]);
 
-  const handleSaveProfile = async (updatedData) => {
+  // Listen for native deep links (asl://profile/[userId])
+  useEffect(() => {
+    const processDeepLink = (url) => {
+      if (!url) return;
+      console.log("Deep link URL intercepted:", url);
+      // Support matching formats like: asl://profile/userId, asl://profile/userId/, or asl://profile/userId?param=value
+      if (url.startsWith("asl://profile/")) {
+        const pathPart = url.replace("asl://profile/", "");
+        const userId = pathPart.split(/[/?#]/)[0];
+        if (userId) {
+          console.log("Deep link opening profile for user ID:", userId);
+          if (handleOpenProfileRef.current) {
+            handleOpenProfileRef.current(userId, { username: "Friend" });
+          }
+        }
+      }
+    };
+
+    let sub;
+    const setupListener = async () => {
+      try {
+        sub = await CapApp.addListener("appUrlOpen", (event) => {
+          processDeepLink(event.url);
+        });
+      } catch (err) {
+        console.warn("Could not register CapApp appUrlOpen listener:", err);
+      }
+    };
+
+    setupListener();
+
+    CapApp.getLaunchUrl().then((launchUrl) => {
+      if (launchUrl && launchUrl.url) {
+        processDeepLink(launchUrl.url);
+      }
+    }).catch(err => {
+      console.warn("Could not check launch URL:", err);
+    });
+
+    return () => {
+      if (sub && typeof sub.remove === "function") {
+        sub.remove();
+      }
+    };
+  }, []);
+
+
+  const handleSaveProfile = async (targetUserIdOrData, updatedData) => {
     if (!currentUser) return;
+    
+    let targetUserId = currentUser.uid;
+    let dataToSave = targetUserIdOrData;
+    
+    if (typeof targetUserIdOrData === "string" && updatedData) {
+      targetUserId = targetUserIdOrData;
+      dataToSave = updatedData;
+    }
+    
     try {
-      await dbSetDoc("users", currentUser.uid, {
-        ...updatedData,
-        uid: currentUser.uid,
-        email: currentUser.email || "",
-        uuid: deviceUuid || "unknown_uuid",
+      const isSelf = targetUserId === currentUser.uid;
+      const isAdmin = userDoc?.isAdmin === true;
+      if (!isSelf && !isAdmin) {
+        throw new Error("Permission Denied: Only administrators can edit other profiles.");
+      }
+      
+      const updatePayload = {
+        ...dataToSave,
+        uid: targetUserId,
         lastLogin: Date.now()
-      }, true);
-      setSelectedProfileUser(prev => prev ? {
+      };
+      
+      if (isSelf) {
+        updatePayload.email = currentUser.email || "";
+        updatePayload.uuid = deviceUuid || "unknown_uuid";
+      }
+      
+      await dbSetDoc("users", targetUserId, updatePayload, true);
+      
+      setSelectedProfileUser(prev => prev && prev.userId === targetUserId ? {
         ...prev,
-        ...updatedData
-      } : null);
+        ...dataToSave
+      } : prev);
     } catch (err) {
       console.error("Error saving profile:", err);
       alert("Error saving profile: " + err.message);
@@ -1919,7 +2072,7 @@ export default function App() {
                         onClick={() => handleOpenProfile("tom", {
                           username: "Tom",
                           mood: "Friendly 🙂",
-                          bio: "Co-founder of asl. Let me know if you have any questions!",
+                          bio: "Remember me?",
                           profileTheme: "classic",
                           emoji_avatar: "👥🥃💖"
                         })}
@@ -1983,7 +2136,7 @@ export default function App() {
                         onClick={() => handleOpenProfile("tom", {
                           username: "Tom",
                           mood: "Friendly 🙂",
-                          bio: "Co-founder of asl. Let me know if you have any questions!",
+                          bio: "Remember me?",
                           profileTheme: "classic",
                           emoji_avatar: "👥🥃💖"
                         })}
@@ -2193,6 +2346,78 @@ export default function App() {
                     <div style={{ flex: 1 }}>
                       <div className="city-portal-title">New York Area Node</div>
                       <div className="city-portal-desc">East Coast Hub — Metropolitan area venues</div>
+                      <div className="city-portal-status" style={{ color: "#d0a000" }}>📡 Network Status: ONLINE (BETA)</div>
+                    </div>
+                    <div className="city-portal-arrow">➡️</div>
+                  </div>
+
+                  {/* Nashville Area Option */}
+                  <div 
+                    className="city-portal-card"
+                    onClick={() => {
+                      setSelectedCity("Nashville");
+                      setNavigationScreen("bar");
+                      if (currentUser) {
+                        const updates = { selectedCity: "Nashville" };
+                        if (!userDoc?.homeCity) {
+                          updates.homeCity = "Nashville";
+                        }
+                        dbSetDoc("users", currentUser.uid, updates, true);
+                      }
+                    }}
+                  >
+                    <div className="city-portal-icon">🎸</div>
+                    <div style={{ flex: 1 }}>
+                      <div className="city-portal-title">Nashville Area Node</div>
+                      <div className="city-portal-desc">Music City Hub — Honky Tonks & Retro Dance Spots</div>
+                      <div className="city-portal-status" style={{ color: "#d0a000" }}>📡 Network Status: ONLINE (BETA)</div>
+                    </div>
+                    <div className="city-portal-arrow">➡️</div>
+                  </div>
+
+                  {/* San Francisco Area Option */}
+                  <div 
+                    className="city-portal-card"
+                    onClick={() => {
+                      setSelectedCity("San Francisco");
+                      setNavigationScreen("bar");
+                      if (currentUser) {
+                        const updates = { selectedCity: "San Francisco" };
+                        if (!userDoc?.homeCity) {
+                          updates.homeCity = "San Francisco";
+                        }
+                        dbSetDoc("users", currentUser.uid, updates, true);
+                      }
+                    }}
+                  >
+                    <div className="city-portal-icon">🌁</div>
+                    <div style={{ flex: 1 }}>
+                      <div className="city-portal-title">San Francisco Area Node</div>
+                      <div className="city-portal-desc">Bay Area Hub — Historic neighborhood dive walls</div>
+                      <div className="city-portal-status" style={{ color: "#d0a000" }}>📡 Network Status: ONLINE (BETA)</div>
+                    </div>
+                    <div className="city-portal-arrow">➡️</div>
+                  </div>
+
+                  {/* Austin Area Option */}
+                  <div 
+                    className="city-portal-card"
+                    onClick={() => {
+                      setSelectedCity("Austin");
+                      setNavigationScreen("bar");
+                      if (currentUser) {
+                        const updates = { selectedCity: "Austin" };
+                        if (!userDoc?.homeCity) {
+                          updates.homeCity = "Austin";
+                        }
+                        dbSetDoc("users", currentUser.uid, updates, true);
+                      }
+                    }}
+                  >
+                    <div className="city-portal-icon">🤠</div>
+                    <div style={{ flex: 1 }}>
+                      <div className="city-portal-title">Austin Area Node</div>
+                      <div className="city-portal-desc">Silicon Hills Hub — Live music capital portals</div>
                       <div className="city-portal-status" style={{ color: "#d0a000" }}>📡 Network Status: ONLINE (BETA)</div>
                     </div>
                     <div className="city-portal-arrow">➡️</div>
@@ -2619,6 +2844,7 @@ export default function App() {
             onOpenChat={handleOpenChat}
 
             currentUserId={currentUser?.uid}
+            currentUserDoc={userDoc}
             onSaveProfile={handleSaveProfile}
             unlockedThemes={
               selectedProfileUser.userId === currentUser?.uid 

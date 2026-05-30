@@ -1133,6 +1133,15 @@ legend {
   color: #ff007f;
 }
 
+/* Global satisfying tactile physical button press transitions */
+.myspace-profile-body button {
+  transition: transform 0.05s ease-out !important;
+}
+.myspace-profile-body button:active {
+  transform: translate(1px, 1px) !important;
+  border-style: inset !important;
+}
+
 /* ==========================================
    THEME OVERRIDES
    ========================================== */
@@ -1205,6 +1214,17 @@ legend {
 }
 
 /* 1. Glitter Theme */
+@keyframes glitterSparkle {
+  0%, 100% {
+    background-color: #ffeff7;
+    filter: brightness(1);
+  }
+  50% {
+    background-color: #fff3fa;
+    filter: brightness(1.05);
+  }
+}
+
 .myspace-theme-glitter {
   --player-border: #ff66cc;
   --player-inner-bg: #ff007f;
@@ -1220,6 +1240,7 @@ legend {
 
 .myspace-theme-glitter .window {
   border: 3px solid #ff66cc !important;
+  box-shadow: 0 0 20px rgba(255, 102, 204, 0.5) !important;
 }
 
 .myspace-theme-glitter .title-bar,
@@ -1228,11 +1249,14 @@ legend {
 }
 
 .myspace-theme-glitter .myspace-profile-body {
-  background-color: #fff0f5 !important;
-  background-image: radial-gradient(#ffb6c1 20%, transparent 20%),
-                    radial-gradient(#ffb6c1 20%, transparent 20%) !important;
-  background-size: 16px 16px !important;
-  background-position: 0 0, 8px 8px !important;
+  animation: glitterSparkle 5s infinite ease-in-out !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1px, transparent 1px),
+                    radial-gradient(circle, rgba(255, 102, 204, 0.4) 2px, transparent 2px),
+                    radial-gradient(circle, rgba(255, 0, 127, 0.15) 1.5px, transparent 1.5px) !important;
+  background-size: 20px 20px, 40px 40px, 30px 30px !important;
+  background-position: 0 0, 10px 10px, 5px 15px !important;
+  box-shadow: inset 0 0 50px rgba(255, 0, 127, 0.12) !important;
+  position: relative;
 }
 
 .myspace-theme-glitter .section-header-orange {
@@ -1307,6 +1331,15 @@ legend {
 }
 
 /* 2. Cyberpunk Theme */
+@keyframes gridMove {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 40px;
+  }
+}
+
 .myspace-theme-cyberpunk {
   --player-border: #00ff00;
   --player-inner-bg: #000000;
@@ -1322,6 +1355,7 @@ legend {
 
 .myspace-theme-cyberpunk .window {
   border: 3px solid #00ff00 !important;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4) !important;
 }
 
 .myspace-theme-cyberpunk .title-bar,
@@ -1332,6 +1366,7 @@ legend {
 }
 .myspace-theme-cyberpunk .title-bar-text {
   color: #00ff00 !important;
+  text-shadow: 0 0 5px #00ff00 !important;
 }
 .myspace-theme-cyberpunk .title-bar button {
   background-color: #000000 !important;
@@ -1349,8 +1384,26 @@ legend {
 }
 
 .myspace-theme-cyberpunk .myspace-profile-body {
-  background-color: #000000 !important;
+  background-color: #0c0813 !important;
+  background-image: linear-gradient(0deg, transparent 24%, rgba(0, 255, 0, 0.05) 25%, rgba(0, 255, 0, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, 0.05) 75%, rgba(0, 255, 0, 0.05) 76%, transparent 77%, transparent),
+                    linear-gradient(90deg, transparent 24%, rgba(0, 255, 0, 0.05) 25%, rgba(0, 255, 0, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, 0.05) 75%, rgba(0, 255, 0, 0.05) 76%, transparent 77%, transparent) !important;
+  background-size: 40px 40px !important;
+  animation: gridMove 6s linear infinite !important;
+  position: relative !important;
+  overflow: hidden !important;
   color: #00ff00 !important;
+}
+
+/* CRT scanline overlay effect for cyberpunk */
+.myspace-theme-cyberpunk .myspace-profile-body::after {
+  content: " " !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; bottom: 0 !important; right: 0 !important;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(0, 255, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 255, 0, 0.03)) !important;
+  background-size: 100% 4px, 6px 100% !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
 }
 
 .myspace-theme-cyberpunk .section-header-orange {
@@ -1468,6 +1521,15 @@ legend {
 }
 
 /* 3. Sunset Theme */
+@keyframes sunsetShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 .myspace-theme-sunset {
   --player-border: #ff4500;
   --player-inner-bg: #2b1055;
@@ -1483,6 +1545,7 @@ legend {
 
 .myspace-theme-sunset .window {
   border: 3px solid #ff4500 !important;
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.45) !important;
 }
 
 .myspace-theme-sunset .title-bar,
@@ -1491,6 +1554,7 @@ legend {
 }
 .myspace-theme-sunset .title-bar-text {
   color: #ffffff !important;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6) !important;
 }
 .myspace-theme-sunset .title-bar button {
   background-color: rgba(43, 16, 85, 0.9) !important;
@@ -1508,8 +1572,11 @@ legend {
 }
 
 .myspace-theme-sunset .myspace-profile-body {
-  background: linear-gradient(135deg, #2b1055, #7597de) !important;
-  color: #ffffff !important;
+  background: linear-gradient(135deg, #1b0933, #5a189a, #d8572a, #ff7b00) !important;
+  background-size: 300% 300% !important;
+  animation: sunsetShift 12s ease infinite !important;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.45) !important;
+  color: #ffdab9 !important;
 }
 
 .myspace-theme-sunset .section-header-orange {
@@ -1627,120 +1694,179 @@ legend {
 /* ==========================================
    Goth Theme
    ========================================== */
+@keyframes crtBeam {
+  0% {
+    top: 0%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
 .myspace-theme-goth {
-  --player-border: #8b0000;
-  --player-inner-bg: #121212;
-  --player-screen-bg: rgba(20, 20, 20, 0.95);
-  --player-screen-text: #ff3333;
+  --player-border: #333333;
+  --player-inner-bg: #000000;
+  --player-screen-bg: #121212;
+  --player-screen-text: #ffffff;
   --player-screen-subtext: #888888;
-  --player-accent: #8b0000;
-  --player-btn-active: #ff3333;
-  --player-btn-inactive: #555555;
-  --player-progress-fill: linear-gradient(90deg, #8b0000 0%, #ff3333 100%);
-  --player-visualizer-bar: #ff3333;
+  --player-accent: #c0c0c0;
+  --player-btn-active: #ffffff;
+  --player-btn-inactive: #444444;
+  --player-progress-fill: linear-gradient(90deg, #555555 0%, #cccccc 100%);
+  --player-visualizer-bar: #888888;
 }
 
 .myspace-theme-goth .window {
-  border: 3px solid #8b0000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.9) !important;
 }
 
 .myspace-theme-goth .title-bar,
 .myspace-theme-goth .window-title {
-  background: linear-gradient(90deg, #000000 0%, #300000 100%) !important;
+  background: #000000 !important;
+  border-bottom: 2px solid #555555 !important;
 }
 .myspace-theme-goth .title-bar-text {
-  color: #ff3333 !important;
+  color: #ffffff !important;
+  font-family: 'Georgia', serif !important;
+  letter-spacing: 2px;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.5) !important;
 }
 .myspace-theme-goth .title-bar button {
-  background-color: #121212 !important;
-  border: 1px solid #8b0000 !important;
+  background-color: #000000 !important;
+  border: 1px solid #555555 !important;
   min-height: 14px !important;
   min-width: 16px !important;
   padding: 0 !important;
 }
 .myspace-theme-goth .title-bar button::after {
   content: "x";
-  color: #ff3333;
+  color: #ffffff;
   font-family: monospace;
   font-size: 10px;
   display: block;
 }
 
 .myspace-theme-goth .myspace-profile-body {
-  background: linear-gradient(135deg, #0d0d0d, #250930) !important;
-  color: #e0e0e0 !important;
+  background-color: #080808 !important;
+  background-image:
+    linear-gradient(45deg, #121212 25%, transparent 25%, transparent 75%, #121212 75%),
+    linear-gradient(45deg, #121212 25%, #050505 25%, #050505 75%, #121212 75%) !important;
+  background-size: 30px 30px !important;
+  background-position: 0 0, 15px 15px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: #cccccc !important;
+  font-family: 'Georgia', serif !important;
+}
+
+/* CRT static scanline overlay */
+.myspace-theme-goth .myspace-profile-body::before {
+  content: " " !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; bottom: 0 !important; right: 0 !important;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%) !important;
+  background-size: 100% 4px !important;
+  pointer-events: none !important;
+  z-index: 8 !important;
+  opacity: 0.5 !important;
+}
+
+/* CRT scanning light beam */
+.myspace-theme-goth .myspace-profile-body::after {
+  content: " " !important;
+  display: block !important;
+  position: absolute !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 6px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15) !important;
+  pointer-events: none !important;
+  z-index: 9 !important;
+  animation: crtBeam 8s linear infinite !important;
 }
 
 .myspace-theme-goth .section-header-orange {
-  background-color: rgba(139, 0, 0, 0.3) !important;
-  color: #ff3333 !important;
-  border-left-color: #ff3333 !important;
-  border: 1px solid #8b0000;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-left-width: 4px !important;
+  border-left-color: #ffffff !important;
+  border: 1px solid #555555;
+  font-family: 'Georgia', serif !important;
+  letter-spacing: 1px;
 }
 
 .myspace-theme-goth .profile-name-header {
-  color: #ff3333 !important;
+  color: #ffffff !important;
+  font-family: 'Georgia', serif !important;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3) !important;
 }
 
 .myspace-theme-goth .profile-headline {
   color: #888888 !important;
+  font-style: italic;
 }
 
 .myspace-theme-goth .profile-details-table,
 .myspace-theme-goth .profile-bio-box,
 .myspace-theme-goth .top8-container {
-  background-color: rgba(13, 13, 13, 0.85) !important;
-  color: #e0e0e0 !important;
-  border: 1px solid #8b0000 !important;
+  background-color: rgba(10, 10, 10, 0.9) !important;
+  color: #cccccc !important;
+  border: 1px solid #555555 !important;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important;
 }
 
 .myspace-theme-goth .profile-photo-box {
-  background-color: rgba(13, 13, 13, 0.85) !important;
-  border: 2px solid #ff3333 !important;
+  background-color: #000000 !important;
+  border: 1px solid #888888 !important;
 }
 
 .myspace-theme-goth .contact-box {
-  border-color: #8b0000 !important;
+  border-color: #555555 !important;
   background-color: transparent !important;
 }
 
 .myspace-theme-goth .contact-box-header {
-  background-color: #8b0000 !important;
+  background-color: #000000 !important;
   color: #ffffff !important;
+  border-bottom: 1px solid #555555 !important;
+  font-family: 'Georgia', serif !important;
 }
 
 .myspace-theme-goth .contact-action {
-  background-color: rgba(13, 13, 13, 0.9) !important;
-  color: #ff3333 !important;
-  border-color: #8b0000 !important;
+  background-color: rgba(10, 10, 10, 0.9) !important;
+  color: #ffffff !important;
+  border-color: #555555 !important;
 }
 
 .myspace-theme-goth .contact-action:hover {
-  background-color: #ff3333 !important;
+  background-color: #ffffff !important;
   color: #000000 !important;
 }
 
 .myspace-theme-goth .friend-avatar-wrapper {
-  background-color: rgba(13, 13, 13, 0.9) !important;
-  border-color: #ff3333 !important;
+  background-color: #000000 !important;
+  border-color: #555555 !important;
 }
 
 .myspace-theme-goth .friend-name {
-  color: #ff3333 !important;
+  color: #ffffff !important;
 }
 
 .myspace-theme-goth .profile-edit-card {
-  border: 1px solid #8b0000 !important;
-  background-color: rgba(13, 13, 13, 0.9) !important;
-  color: #e0e0e0 !important;
+  border: 1px solid #555555 !important;
+  background-color: rgba(10, 10, 10, 0.95) !important;
+  color: #eeeeee !important;
 }
 
 .myspace-theme-goth input[type="text"],
 .myspace-theme-goth textarea,
 .myspace-theme-goth select {
-  background-color: rgba(13, 13, 13, 0.9) !important;
-  color: #e0e0e0 !important;
-  border: 1px solid #8b0000 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #555555 !important;
 }
 .myspace-theme-goth input[type="text"]::placeholder,
 .myspace-theme-goth textarea::placeholder {
@@ -1749,200 +1875,239 @@ legend {
 }
 
 .myspace-theme-goth .myspace-profile-body button {
-  background-color: rgba(13, 13, 13, 0.9) !important;
-  color: #ff3333 !important;
-  border: 1px solid #8b0000 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #555555 !important;
+  font-family: 'Georgia', serif !important;
 }
 .myspace-theme-goth .myspace-profile-body button:hover {
-  background-color: #ff3333 !important;
+  background-color: #ffffff !important;
   color: #000000 !important;
 }
 
 .myspace-theme-goth .favorited-bar-item {
-  border-color: #8b0000 !important;
-  background-color: rgba(13, 13, 13, 0.9) !important;
-  color: #e0e0e0 !important;
+  border-color: #555555 !important;
+  background-color: rgba(10, 10, 10, 0.9) !important;
+  color: #eeeeee !important;
 }
 .myspace-theme-goth .favorited-bar-item span:last-child {
-  color: #ff3333 !important;
+  color: #ffffff !important;
 }
 
 .myspace-theme-goth .emoji-presets-grid {
-  border: 1px solid #8b0000 !important;
-  background-color: rgba(13, 13, 13, 0.9) !important;
+  border: 1px solid #555555 !important;
+  background-color: rgba(10, 10, 10, 0.9) !important;
 }
 .myspace-theme-goth .selected-emoji-btn {
-  background-color: rgba(13, 13, 13, 0.9) !important;
-  border: 1px inset #8b0000 !important;
+  background-color: #222222 !important;
+  border: 1px inset #888888 !important;
 }
 .myspace-theme-goth .profile-help-btn {
-  background-color: rgba(13, 13, 13, 0.9) !important;
-  color: #ff3333 !important;
-  border: 1px solid #8b0000 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #555555 !important;
 }
 .myspace-theme-goth .profile-top-section {
-  border-bottom: 2px solid #8b0000 !important;
+  border-bottom: 2px solid #555555 !important;
 }
 
 /* ==========================================
-   Pokémon Theme
+   Gameboy Theme
    ========================================== */
-.myspace-theme-pokemon {
-  --player-border: #3b4cca;
-  --player-inner-bg: #ffde00;
-  --player-screen-bg: #ffffff;
-  --player-screen-text: #111111;
-  --player-screen-subtext: #3b4cca;
-  --player-accent: #ff0000;
-  --player-btn-active: #ff0000;
-  --player-btn-inactive: #888888;
-  --player-progress-fill: linear-gradient(90deg, #ff0000 0%, #ffde00 100%);
-  --player-visualizer-bar: #3b4cca;
+.myspace-theme-gameboy {
+  --player-border: #0f380f;
+  --player-inner-bg: #8bac0f;
+  --player-screen-bg: #9bbc0f;
+  --player-screen-text: #0f380f;
+  --player-screen-subtext: #306230;
+  --player-accent: #0f380f;
+  --player-btn-active: #306230;
+  --player-btn-inactive: #8bac0f;
+  --player-progress-fill: linear-gradient(90deg, #306230 0%, #0f380f 100%);
+  --player-visualizer-bar: #0f380f;
 }
 
-.myspace-theme-pokemon .window {
-  border: 3px solid #3b4cca !important;
+.myspace-theme-gameboy .window {
+  border: 4px solid #0f380f !important;
+  box-shadow: 0 0 0 2px #8bac0f, 0 0 0 6px #306230 !important;
 }
 
-.myspace-theme-pokemon .title-bar,
-.myspace-theme-pokemon .window-title {
-  background: linear-gradient(90deg, #ff0000 0%, #cc0000 100%) !important;
+.myspace-theme-gameboy .title-bar,
+.myspace-theme-gameboy .window-title {
+  background: #306230 !important;
+  border-bottom: 4px solid #0f380f !important;
+  padding: 4px 8px !important;
 }
-.myspace-theme-pokemon .title-bar-text {
-  color: #ffffff !important;
+.myspace-theme-gameboy .title-bar-text {
+  color: #9bbc0f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  font-weight: bold !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
-.myspace-theme-pokemon .title-bar button {
-  background-color: #ffffff !important;
-  border: 1px solid #3b4cca !important;
-  min-height: 14px !important;
-  min-width: 16px !important;
+.myspace-theme-gameboy .title-bar button {
+  background-color: #8bac0f !important;
+  border: 2px solid #0f380f !important;
+  border-radius: 0 !important;
+  box-shadow: inset -1px -1px #306230, inset 1px 1px #9bbc0f !important;
+  min-height: 16px !important;
+  min-width: 18px !important;
   padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
-.myspace-theme-pokemon .title-bar button::after {
-  content: "x";
-  color: #ff0000;
-  font-family: monospace;
-  font-size: 10px;
-  display: block;
-}
-
-.myspace-theme-pokemon .myspace-profile-body {
-  background: linear-gradient(135deg, #f22613, #f9bf3b) !important;
-  color: #111111 !important;
-}
-
-.myspace-theme-pokemon .section-header-orange {
-  background-color: rgba(59, 76, 202, 0.2) !important;
-  color: #3b4cca !important;
-  border-left-color: #ff0000 !important;
-  border: 1px solid #3b4cca;
-}
-
-.myspace-theme-pokemon .profile-name-header {
-  color: #3b4cca !important;
-}
-
-.myspace-theme-pokemon .profile-headline {
-  color: #222222 !important;
-}
-
-.myspace-theme-pokemon .profile-details-table,
-.myspace-theme-pokemon .profile-bio-box,
-.myspace-theme-pokemon .top8-container {
-  background-color: rgba(240, 240, 240, 0.95) !important;
-  color: #111111 !important;
-  border: 2px solid #3b4cca !important;
-}
-
-.myspace-theme-pokemon .profile-photo-box {
-  background-color: rgba(240, 240, 240, 0.95) !important;
-  border: 2px solid #ff0000 !important;
-}
-
-.myspace-theme-pokemon .contact-box {
-  border-color: #3b4cca !important;
-  background-color: transparent !important;
-}
-
-.myspace-theme-pokemon .contact-box-header {
-  background-color: #3b4cca !important;
-  color: #ffffff !important;
-}
-
-.myspace-theme-pokemon .contact-action {
-  background-color: rgba(240, 240, 240, 0.9) !important;
-  color: #3b4cca !important;
-  border-color: #3b4cca !important;
-}
-
-.myspace-theme-pokemon .contact-action:hover {
-  background-color: #ffde00 !important;
-  color: #111111 !important;
-}
-
-.myspace-theme-pokemon .friend-avatar-wrapper {
-  background-color: rgba(240, 240, 240, 0.9) !important;
-  border-color: #ff0000 !important;
-}
-
-.myspace-theme-pokemon .friend-name {
-  color: #3b4cca !important;
+.myspace-theme-gameboy .title-bar button::after {
+  content: "A" !important;
+  color: #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  font-size: 10px !important;
   font-weight: bold !important;
 }
 
-.myspace-theme-pokemon .profile-edit-card {
-  border: 2px solid #3b4cca !important;
-  background-color: rgba(240, 240, 240, 0.95) !important;
-  color: #111111 !important;
+.myspace-theme-gameboy .myspace-profile-body {
+  background-color: #8bac0f !important;
+  background-image:
+    linear-gradient(rgba(48, 98, 48, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(48, 98, 48, 0.15) 1px, transparent 1px) !important;
+  background-size: 6px 6px !important;
+  color: #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  image-rendering: pixelated !important;
 }
 
-.myspace-theme-pokemon input[type="text"],
-.myspace-theme-pokemon textarea,
-.myspace-theme-pokemon select {
-  background-color: #ffffff !important;
-  color: #111111 !important;
-  border: 1px solid #3b4cca !important;
-}
-.myspace-theme-pokemon input[type="text"]::placeholder,
-.myspace-theme-pokemon textarea::placeholder {
-  color: #888888 !important;
-  opacity: 0.6;
+.myspace-theme-gameboy .section-header-orange {
+  background-color: #306230 !important;
+  color: #9bbc0f !important;
+  border: 2px solid #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  text-transform: uppercase;
+  font-weight: bold !important;
 }
 
-.myspace-theme-pokemon .myspace-profile-body button {
-  background-color: #ffffff !important;
-  color: #3b4cca !important;
-  border: 1px solid #3b4cca !important;
-}
-.myspace-theme-pokemon .myspace-profile-body button:hover {
-  background-color: #3b4cca !important;
-  color: #ffffff !important;
+.myspace-theme-gameboy .profile-name-header {
+  color: #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  text-transform: uppercase;
+  font-weight: bold !important;
 }
 
-.myspace-theme-pokemon .favorited-bar-item {
-  border-color: #3b4cca !important;
-  background-color: rgba(240, 240, 240, 0.9) !important;
-  color: #111111 !important;
-}
-.myspace-theme-pokemon .favorited-bar-item span:last-child {
-  color: #ff0000 !important;
+.myspace-theme-gameboy .profile-headline {
+  color: #306230 !important;
+  font-family: 'Courier New', Courier, monospace !important;
 }
 
-.myspace-theme-pokemon .emoji-presets-grid {
-  border: 1px solid #3b4cca !important;
-  background-color: rgba(240, 240, 240, 0.9) !important;
+.myspace-theme-gameboy .profile-details-table,
+.myspace-theme-gameboy .profile-bio-box,
+.myspace-theme-gameboy .top8-container {
+  background-color: #9bbc0f !important;
+  color: #0f380f !important;
+  border: 3px double #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
 }
-.myspace-theme-pokemon .selected-emoji-btn {
-  background-color: rgba(240, 240, 240, 0.9) !important;
-  border: 1px inset #3b4cca !important;
+
+.myspace-theme-gameboy .profile-photo-box {
+  background-color: #9bbc0f !important;
+  border: 2px solid #0f380f !important;
 }
-.myspace-theme-pokemon .profile-help-btn {
-  background-color: rgba(240, 240, 240, 0.9) !important;
-  color: #3b4cca !important;
-  border: 1px solid #3b4cca !important;
+
+.myspace-theme-gameboy .contact-box {
+  border: 3px double #0f380f !important;
+  background-color: transparent !important;
 }
-.myspace-theme-pokemon .profile-top-section {
-  border-bottom: 2px solid #3b4cca !important;
+
+.myspace-theme-gameboy .contact-box-header {
+  background-color: #306230 !important;
+  color: #9bbc0f !important;
+  border-bottom: 2px solid #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  text-transform: uppercase;
+}
+
+.myspace-theme-gameboy .contact-action {
+  background-color: #8bac0f !important;
+  color: #0f380f !important;
+  border: 2px solid #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  text-transform: uppercase;
+  box-shadow: inset -1px -1px #306230, inset 1px 1px #9bbc0f !important;
+}
+
+.myspace-theme-gameboy .contact-action:hover {
+  background-color: #306230 !important;
+  color: #9bbc0f !important;
+}
+
+.myspace-theme-gameboy .friend-avatar-wrapper {
+  background-color: #9bbc0f !important;
+  border: 2px solid #0f380f !important;
+}
+
+.myspace-theme-gameboy .friend-name {
+  color: #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  text-transform: uppercase;
+  font-weight: bold !important;
+}
+
+.myspace-theme-gameboy .profile-edit-card {
+  border: 3px double #0f380f !important;
+  background-color: #9bbc0f !important;
+  color: #0f380f !important;
+}
+
+.myspace-theme-gameboy input[type="text"],
+.myspace-theme-gameboy textarea,
+.myspace-theme-gameboy select {
+  background-color: #8bac0f !important;
+  color: #0f380f !important;
+  border: 2px solid #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+}
+.myspace-theme-gameboy input[type="text"]::placeholder,
+.myspace-theme-gameboy textarea::placeholder {
+  color: #306230 !important;
+  opacity: 0.7;
+}
+
+.myspace-theme-gameboy .myspace-profile-body button {
+  background-color: #8bac0f !important;
+  color: #0f380f !important;
+  border: 2px solid #0f380f !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  text-transform: uppercase;
+  font-weight: bold;
+  box-shadow: inset -1px -1px #306230, inset 1px 1px #9bbc0f !important;
+}
+.myspace-theme-gameboy .myspace-profile-body button:hover {
+  background-color: #306230 !important;
+  color: #9bbc0f !important;
+}
+
+.myspace-theme-gameboy .favorited-bar-item {
+  border-color: #0f380f !important;
+  background-color: #9bbc0f !important;
+  color: #0f380f !important;
+}
+.myspace-theme-gameboy .favorited-bar-item span:last-child {
+  color: #306230 !important;
+}
+
+.myspace-theme-gameboy .emoji-presets-grid {
+  border: 2px solid #0f380f !important;
+  background-color: #9bbc0f !important;
+}
+.myspace-theme-gameboy .selected-emoji-btn {
+  background-color: #8bac0f !important;
+  border: 2px inset #0f380f !important;
+}
+.myspace-theme-gameboy .profile-help-btn {
+  background-color: #8bac0f !important;
+  color: #0f380f !important;
+  border: 2px solid #0f380f !important;
+}
+.myspace-theme-gameboy .profile-top-section {
+  border-bottom: 3px double #0f380f !important;
 }
 
 /* ==========================================
@@ -3928,6 +4093,192 @@ select.retro-select {
   background-repeat: no-repeat !important;
 }
 
+/* ==========================================
+   Guestbook Styling & Animations
+   ========================================== */
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
+.rainbow-text {
+  background: linear-gradient(90deg, #ff007f, #ffde00, #39ff14, #00ffff, #ff007f) !important;
+  background-size: 400% 400% !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: rainbowShift 6s ease infinite !important;
+  font-weight: bold !important;
+  display: inline-block !important;
+}
 
+.guestbook-ledger {
+  background-color: #ffffff;
+  border: 1px solid #808080;
+  box-shadow: inset 1px 1px #0a0a0a, inset -1px -1px #dfdfdf;
+  margin-top: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.guestbook-entry-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px;
+  border-bottom: 1px dashed #dfdfdf;
+  font-size: 11px;
+}
+
+.guestbook-entry-row:last-child {
+  border-bottom: none;
+}
+
+.guestbook-stamp-col {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: #f0f0f0;
+  border: 1px solid #808080;
+  box-shadow: inset -1px -1px #fff, inset 1px 1px #555;
+  margin-right: 10px;
+}
+
+.guestbook-msg-col {
+  flex-grow: 1;
+  word-break: break-word;
+  line-height: 1.4;
+  color: #333333;
+}
+
+.guestbook-meta-col {
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 9px;
+  color: #666666;
+  margin-left: 8px;
+}
+
+.guestbook-meta-col a {
+  font-weight: bold;
+  color: #000080;
+  text-decoration: underline;
+  cursor: pointer;
+  display: block;
+}
+
+.guestbook-meta-col a:hover {
+  color: #ff0000;
+}
+
+/* Goth Guestbook overrides */
+.myspace-theme-goth .guestbook-ledger {
+  background-color: #050505 !important;
+  border: 1px solid #555555 !important;
+  box-shadow: none !important;
+}
+.myspace-theme-goth .guestbook-entry-row {
+  border-bottom: 1px dashed #333333 !important;
+}
+.myspace-theme-goth .guestbook-stamp-col {
+  background: #111111 !important;
+  border: 1px solid #555555 !important;
+  box-shadow: none !important;
+}
+.myspace-theme-goth .guestbook-msg-col {
+  color: #cccccc !important;
+}
+.myspace-theme-goth .guestbook-meta-col {
+  color: #888888 !important;
+}
+.myspace-theme-goth .guestbook-meta-col a {
+  color: #ffffff !important;
+}
+.myspace-theme-goth .guestbook-meta-col a:hover {
+  color: #ff3333 !important;
+}
+
+/* Cyberpunk Guestbook overrides */
+.myspace-theme-cyberpunk .guestbook-ledger {
+  background-color: #000000 !important;
+  border: 1px solid #00ff00 !important;
+  box-shadow: none !important;
+}
+.myspace-theme-cyberpunk .guestbook-entry-row {
+  border-bottom: 1px dashed #005500 !important;
+}
+.myspace-theme-cyberpunk .guestbook-stamp-col {
+  background: #001100 !important;
+  border: 1px solid #00ff00 !important;
+  box-shadow: none !important;
+}
+.myspace-theme-cyberpunk .guestbook-msg-col {
+  color: #00ff00 !important;
+}
+.myspace-theme-cyberpunk .guestbook-meta-col {
+  color: #00aa00 !important;
+}
+.myspace-theme-cyberpunk .guestbook-meta-col a {
+  color: #00ff00 !important;
+}
+.myspace-theme-cyberpunk .guestbook-meta-col a:hover {
+  color: #ffffff !important;
+}
+
+/* Gameboy Guestbook overrides */
+.myspace-theme-gameboy .guestbook-ledger {
+  background-color: #9bbc0f !important;
+  border: 3px double #0f380f !important;
+  box-shadow: none !important;
+}
+.myspace-theme-gameboy .guestbook-entry-row {
+  border-bottom: 1px dashed #306230 !important;
+}
+.myspace-theme-gameboy .guestbook-stamp-col {
+  background: #8bac0f !important;
+  border: 2px solid #0f380f !important;
+  box-shadow: none !important;
+}
+.myspace-theme-gameboy .guestbook-msg-col {
+  color: #0f380f !important;
+}
+.myspace-theme-gameboy .guestbook-meta-col {
+  color: #306230 !important;
+}
+.myspace-theme-gameboy .guestbook-meta-col a {
+  color: #0f380f !important;
+}
+.myspace-theme-gameboy .guestbook-meta-col a:hover {
+  color: #306230 !important;
+}
+
+/* Sunset Guestbook overrides */
+.myspace-theme-sunset .guestbook-ledger {
+  background-color: rgba(43, 16, 85, 0.8) !important;
+  border: 1px solid #ff4500 !important;
+  box-shadow: none !important;
+}
+.myspace-theme-sunset .guestbook-entry-row {
+  border-bottom: 1px dashed #ff4500 !important;
+}
+.myspace-theme-sunset .guestbook-stamp-col {
+  background: rgba(43, 16, 85, 0.9) !important;
+  border: 1px solid #ff4500 !important;
+  box-shadow: none !important;
+}
+.myspace-theme-sunset .guestbook-msg-col {
+  color: #ffffff !important;
+}
+.myspace-theme-sunset .guestbook-meta-col {
+  color: #ffdab9 !important;
+}
+.myspace-theme-sunset .guestbook-meta-col a {
+  color: #ff8c00 !important;
+}
+.myspace-theme-sunset .guestbook-meta-col a:hover {
+  color: #ffdab9 !important;
+}
 
