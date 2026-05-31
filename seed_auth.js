@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, setDoc, addDoc } from 'firebase/firestore';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 // Read config
 const envFile = readFileSync('.env.local', 'utf-8');
@@ -117,7 +117,20 @@ async function seedAuth() {
       console.log(`Created Auth + DB for ${email}`);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
-        console.log(`Email ${email} already exists. Skipping...`);
+        console.log(`Email ${email} already exists. Logging in to retrieve UID...`);
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          createdUsers.push({
+            uid: userCredential.user.uid,
+            email,
+            password,
+            username: userData.username,
+            emoji_avatar: userData.emoji_avatar,
+            mood: userData.mood
+          });
+        } catch (loginErr) {
+          console.error(`Failed to login for existing user ${email}:`, loginErr);
+        }
       } else {
         console.error(`Error creating auth for ${email}:`, err);
       }
@@ -127,6 +140,10 @@ async function seedAuth() {
   // Create 10 posts for the first 10 auth users
   for (let i = 0; i < Math.min(10, createdUsers.length); i++) {
     const user = createdUsers[i];
+    
+    // Sign in to satisfy Firestore request.auth.uid == userId rules
+    await signInWithEmailAndPassword(auth, user.email, user.password);
+    
     const bar = PHOENIX_BARS_ONLY[Math.floor(Math.random() * PHOENIX_BARS_ONLY.length)];
     const text = MOCK_POSTS[i];
     
