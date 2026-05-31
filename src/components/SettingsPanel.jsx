@@ -478,6 +478,35 @@ export default function SettingsPanel({ currentUser, userDoc, onNavigateBack }) 
             </div>
           </fieldset>
 
+          {/* F. App Store Legal / Compliance */}
+          <fieldset style={{ border: "2px outset #ffffff", padding: "10px", margin: 0 }}>
+            <legend style={{ fontWeight: "bold", color: "#003399" }}>legal & compliance</legend>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <a 
+                  href="/privacy.html" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: "#000080", textDecoration: "underline", fontWeight: "bold" }}
+                >
+                  Privacy Policy
+                </a>
+                <span style={{ color: "#666" }}>|</span>
+                <a 
+                  href="/terms.html" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: "#000080", textDecoration: "underline", fontWeight: "bold" }}
+                >
+                  Terms of Service & EULA
+                </a>
+              </div>
+              <div style={{ color: "#666666", fontSize: "10px", marginTop: "3px" }}>
+                Please review our terms regarding User-Generated Content, safety, blocking, and data retention policies.
+              </div>
+            </div>
+          </fieldset>
+
         </div>
       </div>
 
