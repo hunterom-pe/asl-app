@@ -43,6 +43,10 @@ export default function SettingsPanel({ currentUser, userDoc, onNavigateBack }) 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStatus, setDeleteStatus] = useState("");
 
+  // Legal Modal States
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
   // Load current app icon and user doc notifications on boot
   useEffect(() => {
     // Attempt to get active alternate icon name
@@ -483,23 +487,19 @@ export default function SettingsPanel({ currentUser, userDoc, onNavigateBack }) 
             <legend style={{ fontWeight: "bold", color: "#003399" }}>legal & compliance</legend>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <div style={{ display: "flex", gap: "10px" }}>
-                <a 
-                  href="/privacy.html" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ color: "#000080", textDecoration: "underline", fontWeight: "bold" }}
+                <span 
+                  onClick={() => setShowPrivacyModal(true)}
+                  style={{ color: "#000080", textDecoration: "underline", fontWeight: "bold", cursor: "pointer" }}
                 >
                   Privacy Policy
-                </a>
+                </span>
                 <span style={{ color: "#666" }}>|</span>
-                <a 
-                  href="/terms.html" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ color: "#000080", textDecoration: "underline", fontWeight: "bold" }}
+                <span 
+                  onClick={() => setShowTermsModal(true)}
+                  style={{ color: "#000080", textDecoration: "underline", fontWeight: "bold", cursor: "pointer" }}
                 >
                   Terms of Service & EULA
-                </a>
+                </span>
               </div>
               <div style={{ color: "#666666", fontSize: "10px", marginTop: "3px" }}>
                 Please review our terms regarding User-Generated Content, safety, blocking, and data retention policies.
@@ -565,6 +565,148 @@ export default function SettingsPanel({ currentUser, userDoc, onNavigateBack }) 
                   [ Wipe My Account ]
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 9999,
+          padding: "16px"
+        }}>
+          <div className="window" style={{ width: "340px", maxWidth: "95%", display: "flex", flexDirection: "column", maxHeight: "85vh" }}>
+            <div className="title-bar" style={{ padding: "4px 8px" }}>
+              <div className="title-bar-text" style={{ fontWeight: "bold", color: "#ffffff" }}>
+                asl Help - Privacy Policy
+              </div>
+              <div className="title-bar-controls">
+                <button type="button" aria-label="Close" onClick={() => setShowPrivacyModal(false)} />
+              </div>
+            </div>
+            <div className="window-body" style={{ 
+              padding: "12px", 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: "10px", 
+              backgroundColor: "#ffffff", 
+              fontFamily: "'MS Sans Serif', Geneva, sans-serif", 
+              fontSize: "11px", 
+              overflowY: "auto",
+              flexGrow: 1,
+              border: "1px inset #808080",
+              margin: "8px",
+              textAlign: "left"
+            }}>
+              <h2 style={{ fontSize: "13px", margin: "0 0 4px 0", color: "#000" }}>Privacy Policy</h2>
+              <p style={{ margin: "0 0 8px 0", color: "#666" }}>Last Updated: May 31, 2026</p>
+              <p style={{ margin: "0 0 8px 0" }}>Welcome to <strong>asl</strong>. We respect your privacy and protect the data you share with us.</p>
+              
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>1. Information We Collect</h3>
+              <p style={{ margin: "0 0 8px 0" }}>• Account: Email address or anonymous unique identifier.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Profiles: Custom handles, bios, active moods, and emojis.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• UGC: Missed connections posted and chat messages.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Location: Regional node selection (no background GPS tracking).</p>
+
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>2. How We Use It</h3>
+              <p style={{ margin: "0 0 8px 0" }}>• To display missed connection messages at matching venues.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• To route anonymous AIM chats between partners.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• To prevent fraud, abuse, and spam checkouts.</p>
+
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>3. Data Purge & Deletion</h3>
+              <p style={{ margin: "0 0 8px 0" }}>You can request a full account purge at support@asl-app.com, or use the "Delete My Account Forever" function below. All data is deleted from Firestore within 24 hours.</p>
+
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>4. Security & Hosting</h3>
+              <p style={{ margin: "0 0 8px 0" }}>Hosted securely via Google Firebase servers. We do not sell or trade user data with any third parties.</p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 8px 8px 8px", backgroundColor: "#f0f0f0" }}>
+              <button 
+                onClick={() => setShowPrivacyModal(false)}
+                style={{ minWidth: "80px", minHeight: "24px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Terms of Service & EULA Modal */}
+      {showTermsModal && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 9999,
+          padding: "16px"
+        }}>
+          <div className="window" style={{ width: "340px", maxWidth: "95%", display: "flex", flexDirection: "column", maxHeight: "85vh" }}>
+            <div className="title-bar" style={{ padding: "4px 8px" }}>
+              <div className="title-bar-text" style={{ fontWeight: "bold", color: "#ffffff" }}>
+                asl Help - Terms & EULA
+              </div>
+              <div className="title-bar-controls">
+                <button type="button" aria-label="Close" onClick={() => setShowTermsModal(false)} />
+              </div>
+            </div>
+            <div className="window-body" style={{ 
+              padding: "12px", 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: "10px", 
+              backgroundColor: "#ffffff", 
+              fontFamily: "'MS Sans Serif', Geneva, sans-serif", 
+              fontSize: "11px", 
+              overflowY: "auto",
+              flexGrow: 1,
+              border: "1px inset #808080",
+              margin: "8px",
+              textAlign: "left"
+            }}>
+              <h2 style={{ fontSize: "13px", margin: "0 0 4px 0", color: "#000" }}>Terms & EULA</h2>
+              <p style={{ margin: "0 0 8px 0", color: "#666" }}>Last Updated: May 31, 2026</p>
+              
+              <div style={{ 
+                border: "1px solid #ffcc00", 
+                backgroundColor: "#fff9e6", 
+                padding: "6px", 
+                fontWeight: "bold", 
+                color: "#856404", 
+                marginBottom: "8px" 
+              }}>
+                ⚠️ ZERO TOLERANCE UGC POLICY
+              </div>
+              <p style={{ margin: "0 0 8px 0" }}>By using asl, you agree to these terms. Abusive behavior will result in an immediate ban.</p>
+
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>1. Prohibited Content</h3>
+              <p style={{ margin: "0 0 8px 0" }}>You may not post content that is harassing, defamatory, explicit, pornography, hate speech, or discriminates against individuals or groups.</p>
+
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>2. Safety Actions & Controls</h3>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>Flagging:</strong> Report any offensive post using the "Report" button to instantly hide it from feeds.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>Blocking:</strong> Use the "Block" button in chat to stop all communication and hide their content.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>Reporting:</strong> Warn/flag users in chats. 3 reports trigger an automatic system-wide lockout.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>24h Moderation:</strong> Admins review reports within 24 hours. Offending material is deleted, and abusive accounts are banned.</p>
+
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>3. Disclaimers</h3>
+              <p style={{ margin: "0 0 8px 0" }}>The app is licensed "as-is." We are not liable for user matches, content errors, or service delays.</p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 8px 8px 8px", backgroundColor: "#f0f0f0" }}>
+              <button 
+                onClick={() => setShowTermsModal(false)}
+                style={{ minWidth: "80px", minHeight: "24px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
