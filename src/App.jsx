@@ -76,6 +76,8 @@ export default function App() {
   const [venues, setVenues] = useState([]);
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [venuePosts, setVenuePosts] = useState([]);
+  const [vibeVotes, setVibeVotes] = useState({});
+  const [hasVotedVenue, setHasVotedVenue] = useState({});
   const [activeChatId, setActiveChatId] = useState(null);
   const [activeChatConnection, setActiveChatConnection] = useState(null);
   const [navigationScreen, _setNavigationScreen] = useState("home");
@@ -123,6 +125,40 @@ export default function App() {
     setNavigationHistory(newHistory);
     _setNavigationScreen(prevScreen);
   };
+
+  const getVenueVibeVotes = (venueId) => {
+    if (!venueId) return { chill: 0, buzzing: 0, chaotic: 0 };
+    if (vibeVotes[venueId]) return vibeVotes[venueId];
+    
+    // Seed stable pseudo-random votes based on the string hash of the venue ID
+    let hash = 0;
+    for (let i = 0; i < venueId.length; i++) {
+      hash = venueId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const seedChill = Math.abs((hash % 15) + 3);
+    const seedBuzzing = Math.abs(((hash >> 2) % 25) + 5);
+    const seedChaotic = Math.abs(((hash >> 4) % 10) + 1);
+    
+    return { chill: seedChill, buzzing: seedBuzzing, chaotic: seedChaotic };
+  };
+
+  const handleCastVibeVote = (venueId, type) => {
+    if (hasVotedVenue[venueId]) return;
+    const current = getVenueVibeVotes(venueId);
+    const updated = {
+      ...vibeVotes,
+      [venueId]: {
+        ...current,
+        [type]: current[type] + 1
+      }
+    };
+    setVibeVotes(updated);
+    setHasVotedVenue({
+      ...hasVotedVenue,
+      [venueId]: true
+    });
+  };
+
   const [selectedCity, setSelectedCity] = useState("");
   const [hideWelcome, setHideWelcome] = useState(() => {
     return localStorage.getItem("asl_hide_welcome") === "true";
@@ -2635,6 +2671,10 @@ export default function App() {
                 <span style={{ fontSize: "32px" }}>🍹</span>
               </h2>
 
+              <div className="retro-neon-open" style={{ textShadow: selectedVenue.open_now ? "0 0 4px #39ff14, 0 0 8px #39ff14" : "0 0 4px #ff3333, 0 0 8px #ff3333", color: selectedVenue.open_now ? "#39ff14" : "#ff3333", borderColor: selectedVenue.open_now ? "#39ff14" : "#ff3333", boxShadow: selectedVenue.open_now ? "0 0 4px #39ff14, inset 0 0 4px #39ff14" : "0 0 4px #ff3333, inset 0 0 4px #ff3333" }}>
+                {selectedVenue.open_now ? "🟢 LIVE SIGNAL ONLINE" : "🔴 NODE IDLE"}
+              </div>
+
               <div className="profile-details-table" style={{ fontSize: "11px", lineHeight: "1.4" }}>
                 <p><strong>Region:</strong> {selectedVenue.city || selectedCity}</p>
                 <p><strong>Category:</strong> {selectedVenue.categories && selectedVenue.categories.length > 0 ? selectedVenue.categories.join(", ") : "Local Spot / Venue"}</p>
@@ -2703,6 +2743,89 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Interactive Vibe Check Gauge */}
+              {(() => {
+                const votes = getVenueVibeVotes(selectedVenue.fsq_id);
+                const total = votes.chill + votes.buzzing + votes.chaotic || 1;
+                const chillPercent = Math.round((votes.chill / total) * 100);
+                const buzzingPercent = Math.round((votes.buzzing / total) * 100);
+                const chaoticPercent = Math.round((votes.chaotic / total) * 100);
+                const hasVoted = !!hasVotedVenue[selectedVenue.fsq_id];
+                
+                return (
+                  <div className="top8-container" style={{ marginTop: "10px", padding: "6px" }}>
+                    <div className="section-header-orange" style={{ margin: 0 }}>
+                      Vibe Check Status
+                    </div>
+                    <div style={{ padding: "6px", fontSize: "11px", backgroundColor: "#fff", border: "1px inset #808080", marginTop: "4px" }}>
+                      <p style={{ margin: "0 0 6px 0", fontWeight: "bold", color: "#000" }}>What's the energy at {selectedVenue.name} right now?</p>
+                      
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        {/* Vibe 1: Chill */}
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px", color: "#333" }}>
+                            <span>🍹 Chill Vibe: {chillPercent}% ({votes.chill})</span>
+                            <button 
+                              type="button"
+                              onClick={() => handleCastVibeVote(selectedVenue.fsq_id, "chill")} 
+                              disabled={hasVoted} 
+                              style={{ height: "18px", fontSize: "9px", padding: "0 6px", lineHeight: "12px", minWidth: "40px" }}
+                            >
+                              Vote
+                            </button>
+                          </div>
+                          <div className="win95-vibe-bar">
+                            <div className="win95-vibe-fill" style={{ width: `${chillPercent}%` }} />
+                          </div>
+                        </div>
+
+                        {/* Vibe 2: Buzzing */}
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px", color: "#333" }}>
+                            <span>⚡ Buzzing: {buzzingPercent}% ({votes.buzzing})</span>
+                            <button 
+                              type="button"
+                              onClick={() => handleCastVibeVote(selectedVenue.fsq_id, "buzzing")} 
+                              disabled={hasVoted} 
+                              style={{ height: "18px", fontSize: "9px", padding: "0 6px", lineHeight: "12px", minWidth: "40px" }}
+                            >
+                              Vote
+                            </button>
+                          </div>
+                          <div className="win95-vibe-bar">
+                            <div className="win95-vibe-fill" style={{ width: `${buzzingPercent}%` }} />
+                          </div>
+                        </div>
+
+                        {/* Vibe 3: Chaotic */}
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px", color: "#333" }}>
+                            <span>🤪 Chaotic: {chaoticPercent}% ({votes.chaotic})</span>
+                            <button 
+                              type="button"
+                              onClick={() => handleCastVibeVote(selectedVenue.fsq_id, "chaotic")} 
+                              disabled={hasVoted} 
+                              style={{ height: "18px", fontSize: "9px", padding: "0 6px", lineHeight: "12px", minWidth: "40px" }}
+                            >
+                              Vote
+                            </button>
+                          </div>
+                          <div className="win95-vibe-bar">
+                            <div className="win95-vibe-fill" style={{ width: `${chaoticPercent}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {hasVoted && (
+                        <p style={{ margin: "6px 0 0 0", color: "#666", fontStyle: "italic", fontSize: "10px", textAlign: "center" }}>
+                          Thanks for reporting the vibe! Vote locked.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Dynamic list of people who favorited the bar */}
               <div className="top8-container" style={{ marginTop: "10px" }}>
                 <div className="section-header-orange" style={{ margin: 0 }}>
@@ -2736,6 +2859,16 @@ export default function App() {
 
             {/* Right Profile Column */}
             <div className="myspace-right-col">
+              {/* Marquee ticker */}
+              <div style={{ backgroundColor: "#000", border: "2px inset #808080", padding: "4px 8px", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px", boxSizing: "border-box" }}>
+                <span style={{ color: "#ff007f", fontWeight: "bold", fontSize: "11px", whiteSpace: "nowrap", fontFamily: "monospace" }}>📟 SIGNAL TICKER:</span>
+                <marquee style={{ color: "#39ff14", fontFamily: "monospace", fontSize: "11px", margin: 0, padding: 0 }} scrollamount="3">
+                  {venuePosts.length > 0 
+                    ? venuePosts.map((p, idx) => `• [${p.username || 'Anon'}]: "${p.text.slice(0, 70)}${p.text.length > 70 ? '...' : ''}"`).join("      ") 
+                    : "No reports yet on the wall... Be the first to post a missed connection signal! •"}
+                </marquee>
+              </div>
+
               <div className="section-header-orange" style={{ margin: 0 }}>
                 {selectedVenue.name}'s Missed Connections Wall
               </div>

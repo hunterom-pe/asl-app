@@ -4600,3 +4600,54 @@ select.retro-select {
 .myspace-theme-gossipblog .section-header-orange { background-color: #ffff00 !important; color: #000000 !important; border-left-color: #ff0000 !important; }
 .myspace-theme-gossipblog .profile-name-header { color: #ffff00 !important; text-shadow: 2px 2px #000000 !important; }
 
+/* ==========================================
+   RETRO VENUE / BAR PROFILE PAGE FEATURES
+   ========================================== */
+.retro-neon-open {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  font-size: 11px;
+  color: #39ff14;
+  text-shadow: 0 0 4px #39ff14, 0 0 8px #39ff14;
+  border: 2px solid #39ff14;
+  box-shadow: 0 0 4px #39ff14, inset 0 0 4px #39ff14;
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  animation: neon-blink 2.5s infinite alternate;
+  text-transform: uppercase;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  text-align: center;
+  background: #000;
+  box-sizing: border-box;
+}
+
+@keyframes neon-blink {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 2px #39ff14);
+  }
+  20%, 24%, 55% {
+    opacity: 0.4;
+    filter: none;
+  }
+}
+
+/* Windows 95 Progress Bar Vibe Check styling */
+.win95-vibe-bar {
+  height: 16px;
+  background-color: #dfdfdf;
+  border: 1px inset #808080;
+  padding: 1px;
+  box-sizing: border-box;
+  overflow: hidden;
+  margin-top: 3px;
+  display: flex;
+}
+.win95-vibe-fill {
+  background-color: #000080;
+  height: 100%;
+  transition: width 0.3s ease-out;
+}
+
