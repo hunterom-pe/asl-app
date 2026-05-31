@@ -152,12 +152,91 @@ export default function App() {
         [type]: current[type] + 1
       }
     };
+    
+    // Save to localStorage
+    const now = Date.now();
+    try {
+      let locks = {};
+      const locksVal = localStorage.getItem("asl_vibe_locks");
+      if (locksVal) locks = JSON.parse(locksVal);
+      locks[venueId] = now;
+      
+      localStorage.setItem("asl_vibe_locks", JSON.stringify(locks));
+      localStorage.setItem("asl_vibe_votes", JSON.stringify(updated));
+    } catch (e) {
+      console.error("Error saving vibe vote/lock", e);
+    }
+
     setVibeVotes(updated);
     setHasVotedVenue({
       ...hasVotedVenue,
       [venueId]: true
     });
   };
+
+  // Vibe Check locks and votes storage lifecycle
+  useEffect(() => {
+    try {
+      const votesVal = localStorage.getItem("asl_vibe_votes");
+      const locksVal = localStorage.getItem("asl_vibe_locks");
+      
+      const now = Date.now();
+      let locks = {};
+      let votes = {};
+      
+      if (votesVal) votes = JSON.parse(votesVal);
+      if (locksVal) locks = JSON.parse(locksVal);
+      
+      const activeLocks = {};
+      const activeVotedVenue = {};
+      let hasChanges = false;
+      
+      for (const venueId in locks) {
+        const timestamp = locks[venueId];
+        if (now - timestamp < 3600000) { // 1 hour
+          activeLocks[venueId] = timestamp;
+          activeVotedVenue[venueId] = true;
+        } else {
+          hasChanges = true;
+        }
+      }
+      
+      if (hasChanges) {
+        localStorage.setItem("asl_vibe_locks", JSON.stringify(activeLocks));
+      }
+      
+      setVibeVotes(votes);
+      setHasVotedVenue(activeVotedVenue);
+    } catch (e) {
+      console.error("Error loading vibe votes/locks", e);
+    }
+  }, []);
+
+  // Expiration check when switching venues
+  useEffect(() => {
+    if (!selectedVenue) return;
+    try {
+      const locksVal = localStorage.getItem("asl_vibe_locks");
+      if (!locksVal) return;
+      
+      const locks = JSON.parse(locksVal);
+      const venueId = selectedVenue.fsq_id;
+      if (locks[venueId]) {
+        const now = Date.now();
+        if (now - locks[venueId] >= 3600000) { // 1 hour expired
+          delete locks[venueId];
+          localStorage.setItem("asl_vibe_locks", JSON.stringify(locks));
+          setHasVotedVenue(prev => {
+            const copy = { ...prev };
+            delete copy[venueId];
+            return copy;
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Error checking vibe check expiration on venue select", e);
+    }
+  }, [selectedVenue]);
 
   const [selectedCity, setSelectedCity] = useState("");
   const [hideWelcome, setHideWelcome] = useState(() => {
@@ -2670,10 +2749,6 @@ export default function App() {
                 <span>{selectedVenue.name}</span>
                 <span style={{ fontSize: "32px" }}>🍹</span>
               </h2>
-
-              <div className="retro-neon-open" style={{ textShadow: selectedVenue.open_now ? "0 0 4px #39ff14, 0 0 8px #39ff14" : "0 0 4px #ff3333, 0 0 8px #ff3333", color: selectedVenue.open_now ? "#39ff14" : "#ff3333", borderColor: selectedVenue.open_now ? "#39ff14" : "#ff3333", boxShadow: selectedVenue.open_now ? "0 0 4px #39ff14, inset 0 0 4px #39ff14" : "0 0 4px #ff3333, inset 0 0 4px #ff3333" }}>
-                {selectedVenue.open_now ? "🟢 LIVE SIGNAL ONLINE" : "🔴 NODE IDLE"}
-              </div>
 
               <div className="profile-details-table" style={{ fontSize: "11px", lineHeight: "1.4" }}>
                 <p><strong>Region:</strong> {selectedVenue.city || selectedCity}</p>
