@@ -20,7 +20,6 @@
     "@capacitor/geolocation": "^8.2.0",
     "@capacitor/ios": "^8.3.4",
     "@capacitor/privacy-screen": "^2.0.1",
-    "@capacitor/push-notifications": "^8.1.1",
     "@capacitor/share": "^8.0.1",
     "@capgo/native-purchases": "^8.4.0",
     "98.css": "^0.1.21",
