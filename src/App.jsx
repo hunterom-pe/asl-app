@@ -257,6 +257,11 @@ export default function App() {
   const [certaintyCountdown, setCertaintyCountdown] = useState(3);
   const [acceptedConnections, setAcceptedConnections] = useState([]);
 
+  // Report post states
+  const [showReportDialog, setShowReportDialog] = useState(null);
+  const [reportReason, setReportReason] = useState("harassment");
+  const [blockPoster, setBlockPoster] = useState(false);
+
   // Safety / strike warning states
   const [hasShownStrike2, setHasShownStrike2] = useState(false);
   const [showStrike2Warning, setShowStrike2Warning] = useState(false);
@@ -1114,12 +1119,23 @@ export default function App() {
     }
   };
 
-  const handleReportPost = async (post) => {
-    const confirmReport = window.confirm("Are you sure you want to report this post for safety violations?");
-    if (!confirmReport) return;
+  const handleReportPost = (post) => {
+    setReportReason("harassment");
+    setBlockPoster(false);
+    setShowReportDialog(post);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!showReportDialog) return;
+    const post = showReportDialog;
     try {
       // 1. Mark reported: true on the post document
-      await dbUpdateDoc("posts", post.id, { reported: true });
+      await dbUpdateDoc("posts", post.id, { 
+        reported: true,
+        reportReason: reportReason,
+        reportedAt: Date.now(),
+        reportedBy: currentUser?.uid || "anonymous"
+      });
 
       // 2. Increment poster's flag_count in their users document
       const posterSnap = await dbGetDoc("users", post.userId);
@@ -1129,9 +1145,24 @@ export default function App() {
         await dbUpdateDoc("users", post.userId, { flag_count: currentFlags + 1 });
       }
 
+      // 3. Block user option
+      if (blockPoster && currentUser) {
+        const currentBlocked = userDoc?.blockedUsers || [];
+        if (!currentBlocked.includes(post.userId)) {
+          const updatedBlocked = [...currentBlocked, post.userId];
+          await dbUpdateDoc("users", currentUser.uid, { blockedUsers: updatedBlocked });
+          setUserDoc(prev => ({
+            ...prev,
+            blockedUsers: updatedBlocked
+          }));
+        }
+      }
+
       alert("Thank you. The post has been flagged and removed from your feed.");
+      setShowReportDialog(null);
     } catch (err) {
       console.error("Error reporting post:", err);
+      alert("Failed to submit report. Please try again.");
     }
   };
 
@@ -3251,6 +3282,132 @@ export default function App() {
                     }}
                   >
                     {certaintyCountdown > 0 ? `[ WAIT... ${certaintyCountdown} ]` : "[ ABSOLUTELY SURE ]"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Post Dialog Modal */}
+      {showReportDialog && (
+        <div className="modal-overlay">
+          <div className="modal-container" style={{ maxWidth: "420px" }}>
+            <div className="window">
+              <TitleBar title="Report Missed Connection" onClose={() => setShowReportDialog(null)} />
+              <div className="window-body" style={{ gap: "12px", padding: "12px" }}>
+                <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                  <span style={{ fontSize: "32px" }}>🚨</span>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: "0 0 6px 0", fontSize: "14px", fontWeight: "bold", color: "#cc0000" }}>
+                      Report Safety or Policy Violation
+                    </h4>
+                    <p style={{ margin: 0, fontSize: "11px", color: "#555", lineHeight: "1.4" }}>
+                      Help keep our local nodes clean. Please select the primary reason for flagging this post:
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ 
+                  backgroundColor: "#fff", 
+                  border: "1px inset #808080", 
+                  padding: "10px", 
+                  marginTop: "8px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  fontSize: "12px",
+                  color: "#000"
+                }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                    <input 
+                      type="radio" 
+                      name="reportReason" 
+                      value="harassment" 
+                      checked={reportReason === "harassment"}
+                      onChange={(e) => setReportReason(e.target.value)}
+                    />
+                    <span>Harassment, bullying, or personal attacks</span>
+                  </label>
+
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                    <input 
+                      type="radio" 
+                      name="reportReason" 
+                      value="spam" 
+                      checked={reportReason === "spam"}
+                      onChange={(e) => setReportReason(e.target.value)}
+                    />
+                    <span>Spam, advertising, or self-promotion</span>
+                  </label>
+
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                    <input 
+                      type="radio" 
+                      name="reportReason" 
+                      value="explicit" 
+                      checked={reportReason === "explicit"}
+                      onChange={(e) => setReportReason(e.target.value)}
+                    />
+                    <span>Inappropriate or explicit (UGC) adult content</span>
+                  </label>
+
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                    <input 
+                      type="radio" 
+                      name="reportReason" 
+                      value="hate_speech" 
+                      checked={reportReason === "hate_speech"}
+                      onChange={(e) => setReportReason(e.target.value)}
+                    />
+                    <span>Hate speech, discrimination, or slurs</span>
+                  </label>
+
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                    <input 
+                      type="radio" 
+                      name="reportReason" 
+                      value="off_topic" 
+                      checked={reportReason === "off_topic"}
+                      onChange={(e) => setReportReason(e.target.value)}
+                    />
+                    <span>Off-topic, fake post, or trolls</span>
+                  </label>
+                </div>
+
+                {currentUser && !currentUser.isAnonymous && (
+                  <div style={{ marginTop: "8px", paddingLeft: "4px" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "11px", fontWeight: "bold" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={blockPoster} 
+                        onChange={(e) => setBlockPoster(e.target.checked)} 
+                      />
+                      <span>Also block user "{showReportDialog.username}" (hides all their posts and mail)</span>
+                    </label>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "12px" }}>
+                  <button 
+                    onClick={() => setShowReportDialog(null)} 
+                    style={{ minWidth: "90px" }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="default"
+                    onClick={handleSubmitReport}
+                    style={{ 
+                      minWidth: "120px", 
+                      fontWeight: "bold",
+                      backgroundColor: "#cc0000",
+                      color: "#fff",
+                      borderColor: "#cc0000"
+                    }}
+                  >
+                    ⚠️ Flag & Remove
                   </button>
                 </div>
               </div>
