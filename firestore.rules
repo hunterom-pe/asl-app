@@ -117,7 +117,7 @@ service cloud.firestore {
 
     // Appeals Collection
     match /appeals/{appealId} {
-      allow read: if isFullyAuthenticated();
+      allow read: if isAuthenticated() && (request.auth.token.admin == true || request.auth.uid == "sysop_admin");
       allow create: if isFullyAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false; // Appeals are immutable once submitted
     }

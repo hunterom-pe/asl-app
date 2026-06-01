@@ -28,7 +28,9 @@ import {
   dbGetDocs,
   dbSubmitReport,
   dbCallFunction,
-  queryWhere
+  queryWhere,
+  queryOrderBy,
+  queryLimit
 } from "./firebase";
 import { searchVenues } from "./services/foursquare";
 import { getDeviceUuid, moderateTextWithGemini } from "./services/security";
@@ -775,37 +777,31 @@ export default function App() {
       setAllPostsCount(snapshot.size);
     });
 
-    // Active buddies (logged in/registered in the last 7 days) and dynamic new users list
-    const unsubUsers = dbOnSnapshot("users", [], (snapshot) => {
-      const now = Date.now();
-      const list = [];
-      let activeCount = 0;
-
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const time = data.lastLogin || data.createdAt || 0;
-        
-        // Count active buddies (7-day threshold to capture mock profiles too)
-        if (now - time < 7 * 24 * 60 * 60 * 1000) {
-          activeCount++;
-        }
-
-        // Add to cool new people list if not SysOp or Tom
-        if (doc.id !== "sysop_admin" && doc.id !== "tom") {
-          list.push({ uid: doc.id, ...data });
-        }
-      });
-
-      // Sort by createdAt descending
-      list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      setCoolNewPeople(list.slice(0, 3));
-      setActiveBuddiesCount(activeCount);
-    });
-
     return () => {
       unsubPosts();
-      unsubUsers();
     };
+  }, []);
+
+  // One-time load: active buddy count + cool new people (targeted queries, not full scan)
+  useEffect(() => {
+    const loadUserStats = async () => {
+      try {
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const [activeSnap, newSnap] = await Promise.all([
+          dbGetDocs("users", [queryWhere("lastLogin", ">", sevenDaysAgo)]),
+          dbGetDocs("users", [queryOrderBy("createdAt", "desc"), queryLimit(10)])
+        ]);
+        setActiveBuddiesCount(activeSnap.size);
+        const list = newSnap.docs
+          .map(doc => ({ uid: doc.id, ...doc.data() }))
+          .filter(u => u.uid !== "sysop_admin" && u.uid !== "tom")
+          .slice(0, 3);
+        setCoolNewPeople(list);
+      } catch (err) {
+        console.error("Error loading user stats:", err);
+      }
+    };
+    loadUserStats();
   }, []);
 
   // Favorites feed: subscribe to all posts and filter by the logged-in user's favorited bars

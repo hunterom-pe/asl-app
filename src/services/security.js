@@ -129,69 +129,13 @@ export function setupWebScreenshotDetector(onDetection) {
  * @returns {Promise<{ approved: boolean, reason?: string }>}
  */
 export async function moderateTextWithGemini(text, contentType = "post") {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem("asl_gemini_api_key");
-  
-  if (!apiKey) {
-    console.warn("Google Gemini API key not found in env (VITE_GEMINI_API_KEY) or localStorage (asl_gemini_api_key). Using local moderation fallback.");
-    return runLocalModerationFallback(text, contentType);
-  }
-
   try {
-    const prompt = `You are a moderator for a nostalgic 2000s missed connection social network called "asl".
-Analyze this text submitted as a ${contentType === "post" ? "missed connection post for a bar" : "verification proof reply to claim a post"}:
-"${text}"
-
-Evaluate if the text:
-1. Is on-topic (describes an encounter/vibe/appearance/person at a venue, bar, or local spot, or details verifying who they are/how they met).
-2. Does NOT contain vulgar sentences, extreme profanity, or toxic insults.
-3. Is NOT just random thoughts, spam, or gibberish (e.g. "I like turtles", "Today is raining").
-4. Does NOT contain doxxing, full names, phone numbers, email addresses, external links, or social media handles (like @username or instagram.com links).
-
-If the text violates rule 4 (contains handles, phone numbers, links, names, or emails), set "category" to "doxxing".
-If it violates rules 1, 2, or 3 (spam, cringe, off-topic, insults, profanity), set "category" to "spam".
-
-You must reply with a valid JSON object in exactly this format:
-{
-  "approved": true/false,
-  "category": "spam" | "doxxing" | ""
-}`;
-
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text }]
-        }],
-        systemInstruction: {
-          parts: [{ text: prompt }]
-        },
-        generationConfig: {
-          responseMimeType: "application/json"
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
-    }
-
-    const result = await response.json();
-    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!responseText) {
-      throw new Error("Empty response from Gemini API");
-    }
-
-    const parsed = JSON.parse(responseText.trim());
-    return {
-      approved: !!parsed.approved,
-      category: parsed.category || "spam"
-    };
+    const { getFunctions, httpsCallable } = await import("firebase/functions");
+    const fn = httpsCallable(getFunctions(), "moderateText");
+    const result = await fn({ text, contentType });
+    return result.data;
   } catch (err) {
-    console.error("Gemini Moderation Error:", err);
+    console.warn("[Security] Remote moderation unavailable, using local fallback:", err);
     return runLocalModerationFallback(text, contentType);
   }
 }

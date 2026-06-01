@@ -57,9 +57,9 @@ exports.createPostSecure = onCall(async (request) => {
 
   if (apiKey) {
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           contents: [{
             parts: [{
@@ -300,4 +300,60 @@ exports.restorePost = onCall(async (request) => {
   });
 
   return { success: true };
+});
+
+exports.moderateText = onCall(async (request) => {
+  const { data, auth } = request;
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Authentication required.");
+  }
+
+  const text = typeof data.text === "string" ? data.text : "";
+  const contentType = data.contentType === "proof" ? "proof" : "post";
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (apiKey) {
+    try {
+      const prompt = `You are a moderator for a nostalgic 2000s missed connection social network called "asl".
+Analyze this text submitted as a ${contentType === "post" ? "missed connection post for a bar" : "verification proof reply to claim a post"}:
+"${text}"
+
+Evaluate if the text:
+1. Is on-topic (describes an encounter/vibe/appearance at a venue, or details verifying how they met).
+2. Does NOT contain vulgar sentences, extreme profanity, or toxic insults.
+3. Is NOT spam or gibberish.
+4. Does NOT contain doxxing, full names, phone numbers, email addresses, external links, or social handles.
+
+If it violates rule 4, set "category" to "doxxing". If it violates rules 1-3, set "category" to "spam".
+Reply with valid JSON: { "approved": true/false, "category": "spam" | "doxxing" | "" }`;
+
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text }] }],
+          systemInstruction: { parts: [{ text: prompt }] },
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const resData = await response.json();
+      const resultText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!resultText) throw new Error("Empty Gemini response");
+      const parsed = JSON.parse(resultText.trim());
+      return { approved: !!parsed.approved, category: parsed.category || "" };
+    } catch (e) {
+      console.error("Gemini moderateText failed, using local fallback:", e);
+    }
+  }
+
+  // Local regex fallback when Gemini key is not configured or call fails
+  const hasPhone = /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b|\b\d{10}\b/.test(text);
+  const hasEmail = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/.test(text);
+  const hasHandle = /@\w+/.test(text) || /\b(instagram|twitter|facebook|tiktok|snapchat)\.com\b/i.test(text);
+  const hasUrl = /\b(https?:\/\/|www\.)\S+\b/i.test(text);
+  if (hasPhone || hasEmail || hasHandle || hasUrl) {
+    return { approved: false, category: "doxxing" };
+  }
+  return { approved: true, category: "" };
 });
