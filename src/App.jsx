@@ -1860,47 +1860,48 @@ export default function App() {
           <div style={{ maxWidth: "450px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
             {(!hideWelcome || !currentUser || currentUser.isAnonymous) && (
               <div 
-                className="window" 
                 style={{ 
-                  borderRadius: 0, 
-                  boxShadow: "4px 4px 0px rgba(0, 0, 0, 0.15)", 
-                  border: "2px outset #ffffff", 
-                  backgroundColor: "#c0c0c0", 
-                  padding: "2px" 
+                  borderRadius: "4px", 
+                  boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)", 
+                  border: "1px solid #6699cc", 
+                  backgroundColor: "#ffffff"
                 }}
               >
                 <div 
-                  className="title-bar" 
                   style={{ 
-                    borderRadius: 0, 
-                    background: "linear-gradient(90deg, #000080 0%, #1084d0 100%)", 
-                    padding: "4px 6px", 
+                    borderRadius: "3px 3px 0 0", 
+                    background: "linear-gradient(90deg, #6699cc 0%, #ff99cc 100%)", 
+                    padding: "8px 12px", 
                     display: "flex", 
                     justifyContent: "space-between", 
                     alignItems: "center", 
                     color: "#fff", 
                     fontWeight: "bold", 
-                    fontSize: "12px", 
-                    fontFamily: "MS Sans Serif, sans-serif",
-                    textShadow: "1px 1px 1px rgba(0,0,0,0.5)"
+                    fontSize: "14px", 
+                    fontFamily: "Arial, sans-serif"
                   }}
                 >
-                  <span className="title-bar-text">Welcome.exe</span>
-                  <div className="title-bar-controls">
-                    {currentUser && !currentUser.isAnonymous && (
-                      <button 
-                        aria-label="Close" 
-                        onClick={() => {
-                          localStorage.setItem("asl_hide_welcome", "true");
-                          setHideWelcome(true);
-                        }}
-                        style={{ borderRadius: 0, cursor: "pointer" }}
-                      />
-                    )}
-                  </div>
+                  <span>Welcome</span>
+                  {currentUser && !currentUser.isAnonymous && (
+                    <span 
+                      onClick={() => {
+                        localStorage.setItem("asl_hide_welcome", "true");
+                        setHideWelcome(true);
+                      }} 
+                      style={{ 
+                        cursor: "pointer", 
+                        fontWeight: "bold", 
+                        fontSize: "16px",
+                        color: "#ffffff",
+                        padding: "0 4px"
+                      }}
+                    >
+                      ✕
+                    </span>
+                  )}
                 </div>
-                <div className="window-body" style={{ margin: "10px", textAlign: "left" }}>
-                  <div className="myspace-welcome-text" style={{ marginBottom: "15px", lineHeight: "1.4" }}>
+                <div style={{ padding: "16px", textAlign: "left" }}>
+                  <div className="myspace-welcome-text" style={{ marginBottom: "15px", lineHeight: "1.4", fontFamily: "Arial, sans-serif", color: "#333", fontSize: "13px" }}>
                     asl is for missed connections:<br />
                     like that friend you made in the bathroom line, or that 10/10 you met sharing a lighter outside the venue. This isn't just another generic dating app, it's a digital bulletin board to reconnect with the people who crossed your path last night.
                   </div>
@@ -1911,19 +1912,19 @@ export default function App() {
                       minHeight: "52px", 
                       fontSize: "17px", 
                       fontWeight: "bold",
-                      borderRadius: 0,
-                      border: "2px outset #ff66cc",
-                      backgroundColor: "#ff66cc",
+                      borderRadius: "4px",
+                      border: "1px solid #cc0052",
+                      backgroundColor: "#ff4d94",
                       color: "#fff",
-                      textShadow: "1px 1px 0px #000",
-                      boxShadow: "inset -2px -2px #800080, inset 2px 2px #ffcce6, 2px 2px 0 0 #000",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "8px",
-                      transition: "all 0.1s ease"
+                      transition: "all 0.2s ease"
                     }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#ff1a75"}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#ff4d94"}
                   >
                     🌵 Enter Regional Portal
                   </button>
