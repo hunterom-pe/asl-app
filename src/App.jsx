@@ -3308,32 +3308,70 @@ export default function App() {
       {showCertaintyModal && (
         <div className="modal-overlay">
           <div className="modal-container" style={{ maxWidth: "400px" }}>
-            <div className="window">
-              <TitleBar title="Absolute Certainty Checkpoint" onClose={() => setShowCertaintyModal(null)} />
-              <div className="window-body" style={{ gap: "12px", padding: "10px" }}>
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <div style={{ 
+              width: "100%", 
+              display: "flex", 
+              flexDirection: "column", 
+              border: "1px solid #6699cc", 
+              backgroundColor: "#ffffff", 
+              boxShadow: "0px 4px 15px rgba(0,0,0,0.15)",
+              fontFamily: "Arial, sans-serif" 
+            }}>
+              <div style={{ 
+                backgroundColor: "#6699cc", 
+                color: "#ffffff", 
+                fontWeight: "bold", 
+                fontSize: "14px", 
+                padding: "8px 12px", 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center" 
+              }}>
+                <span>Absolute Certainty Checkpoint</span>
+                <span 
+                  onClick={() => setShowCertaintyModal(null)} 
+                  style={{ 
+                    cursor: "pointer", 
+                    fontWeight: "bold", 
+                    fontSize: "16px",
+                    color: "#ffffff",
+                    padding: "0 4px"
+                  }}
+                >
+                  ✕
+                </span>
+              </div>
+              <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div style={{ display: "flex", gap: "12px", alignItems: "center", border: "1px solid #ff99cc", padding: "12px", backgroundColor: "#fff5fa" }}>
                   <span style={{ fontSize: "36px" }}>⚠️</span>
                   <div>
-                    <h4 style={{ margin: "0 0 4px 0", fontSize: "13px", color: "red" }}>Are you absolutely sure?</h4>
-                    <p style={{ margin: 0, fontSize: "12px", lineHeight: "1.4" }}>
+                    <h4 style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#cc0052", fontWeight: "bold" }}>Are you absolutely sure?</h4>
+                    <p style={{ margin: 0, fontSize: "11px", lineHeight: "1.4", color: "#555" }}>
                       If the poster rejects this claim by purging it, you will be penalized with a 12-hour lockout from outbound connections.
                     </p>
                   </div>
                 </div>
                 {certaintyCountdown > 0 && (
-                  <p style={{ margin: "8px 0 0 0", fontSize: "11px", color: "#808080", textAlign: "center" }}>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#808080", textAlign: "center" }}>
                     Please read the above carefully… ({certaintyCountdown})
                   </p>
                 )}
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "10px" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "4px" }}>
                   <button 
                     onClick={() => setShowCertaintyModal(null)} 
-                    style={{ minWidth: "120px", minHeight: "36px" }}
+                    style={{ 
+                      minWidth: "120px", 
+                      minHeight: "36px", 
+                      cursor: "pointer", 
+                      backgroundColor: "#dfdfdf", 
+                      color: "#333", 
+                      border: "1px solid #b5b5b5",
+                      fontSize: "12px"
+                    }}
                   >
                     [ ABORT / MY FAULT ]
                   </button>
                   <button 
-                    className="default"
                     disabled={certaintyCountdown > 0}
                     onClick={() => {
                       setShowProofDialog(showCertaintyModal);
@@ -3345,7 +3383,11 @@ export default function App() {
                       minHeight: "36px", 
                       fontWeight: "bold",
                       opacity: certaintyCountdown > 0 ? 0.45 : 1,
-                      cursor: certaintyCountdown > 0 ? "not-allowed" : "pointer"
+                      cursor: certaintyCountdown > 0 ? "not-allowed" : "pointer",
+                      backgroundColor: "#6699cc", 
+                      color: "white", 
+                      border: "1px solid #4a7ebb",
+                      fontSize: "12px"
                     }}
                   >
                     {certaintyCountdown > 0 ? `[ WAIT... ${certaintyCountdown} ]` : "[ ABSOLUTELY SURE ]"}
