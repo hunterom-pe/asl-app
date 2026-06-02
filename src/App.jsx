@@ -3075,12 +3075,29 @@ export default function App() {
                               </button>
                             ) : post.userId !== currentUser?.uid ? (
                               <>
-                                <button 
-                                  onClick={() => runWithAuthenticationCheck(() => handleThatWasMe(post))}
-                                  style={{ minHeight: "24px", padding: "2px 8px" }}
-                                >
-                                  🤝 That Was Me!
-                                </button>
+                                {currentUser && userConnections.some(c => c.postId === post.id && c.senderId === currentUser.uid) ? (
+                                  <button 
+                                    disabled
+                                    style={{ minHeight: "24px", padding: "2px 8px", color: "#888", border: "1px solid #aaa", backgroundColor: "#e0e0e0", cursor: "not-allowed" }}
+                                  >
+                                    🤝 Handshake Sent
+                                  </button>
+                                ) : userDoc?.handshake_cooldown && userDoc.handshake_cooldown > Date.now() ? (
+                                  <button 
+                                    disabled
+                                    style={{ minHeight: "24px", padding: "2px 8px", color: "#888", border: "1px solid #aaa", backgroundColor: "#e0e0e0", cursor: "not-allowed" }}
+                                    title="Locked out from outbound handshakes for 12 hours."
+                                  >
+                                    🤝 Handshake Locked
+                                  </button>
+                                ) : (
+                                  <button 
+                                    onClick={() => runWithAuthenticationCheck(() => handleThatWasMe(post))}
+                                    style={{ minHeight: "24px", padding: "2px 8px" }}
+                                  >
+                                    🤝 That Was Me!
+                                  </button>
+                                )}
                                 <button 
                                   onClick={() => runWithAuthenticationCheck(() => handleReportPost(post))}
                                   style={{ 

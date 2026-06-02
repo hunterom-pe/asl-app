@@ -1508,7 +1508,7 @@ export const dbAddDoc = async (collectionName, data) => {
     // Some collections are object maps, some are arrays in simulation. 
     // Let's standardise on arrays for posts, messages, and chats to support lists easily
     const newId = collectionName + "_" + Math.random().toString(36).slice(2, 11);
-    const item = { ...data, id: newId, timestamp: Date.now(), status: "active" };
+    const item = { ...data, id: newId, timestamp: Date.now(), status: data.status || "active" };
     
     if (Array.isArray(store[collectionName])) {
       store[collectionName].push(item);
