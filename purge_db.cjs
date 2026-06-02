@@ -3,7 +3,7 @@
  * Deletes all documents in all Firestore collections and all users in Firebase Auth.
  * 
  * Usage:
- *   GOOGLE_APPLICATION_CREDENTIALS=./functions/serviceAccount.json node purge_db.js
+ *   GOOGLE_APPLICATION_CREDENTIALS=./functions/serviceAccount.json node purge_db.cjs
  */
 const admin = require("firebase-admin");
 
