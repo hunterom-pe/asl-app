@@ -636,9 +636,12 @@ export default function App() {
       const now = Date.now();
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        const ts = data.timestamp || data.encounterTimestamp || 0;
+        const rawTs = data.timestamp || data.encounterTimestamp || 0;
+        const tsMillis = (rawTs && typeof rawTs.toMillis === "function")
+          ? rawTs.toMillis()
+          : ((rawTs && rawTs.seconds !== undefined) ? rawTs.seconds * 1000 : Number(rawTs || 0));
         // Auto-expire pending claims older than 48 hours
-        if (ts && (now - ts) > TTL_MS) {
+        if (tsMillis && (now - tsMillis) > TTL_MS) {
           dbDeleteDoc("connections", doc.id).catch(err =>
             console.warn("TTL sweep: could not delete expired claim", doc.id, err)
           );
