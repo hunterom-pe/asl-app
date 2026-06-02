@@ -322,7 +322,7 @@ export default function OutlookInbox({ currentUser, userDoc, onClose, onOpenChat
                 onClick={handleDelete}
                 style={{ backgroundColor: "#ff9999", color: "#990000", minHeight: "44px" }}
               >
-                {activeFolder === "inbox" && selectedConn.status === "pending" ? "🗑️ [ Purge Transmission ]" : "🗑️ Delete Request"}
+                {activeFolder === "inbox" && selectedConn.status === "pending" ? "🗑️ Delete Response" : "🗑️ Delete Request"}
               </button>
             </div>
           </div>
