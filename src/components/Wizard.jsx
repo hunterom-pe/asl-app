@@ -33,6 +33,7 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null, cur
   const [selectedVenue, setSelectedVenue] = useState(preselectedVenue);
   const [isSearching, setIsSearching] = useState(false);
   const [isModerating, setIsModerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Step 2 Form States (7-Day Scarcity)
   const [datetimeVal, setDatetimeVal] = useState(() => {
@@ -188,25 +189,34 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null, cur
     setStep(prev => prev - 1);
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    setIsSubmitting(true);
+    setErrorMsg("");
     const { dateStr, timeStr } = formatDatetime(datetimeVal);
     const concatenatedText = `About Me: ${fieldA} | About You: ${fieldB} | Context: ${fieldC}`;
-    onSubmit({
-      venueId: selectedVenue.fsq_id,
-      venueName: selectedVenue.name,
-      venueAddress: selectedVenue.address,
-      venueCity: selectedVenue.city,
-      venueZone: selectedVenue.zone,
-      date: dateStr,
-      timeRange: timeStr,
-      text: concatenatedText,
-      username,
-      mood,
-      bio,
-      profileTheme,
-      emoji_avatar: emojiAvatar,
-      encounterTimestamp: new Date(datetimeVal).getTime()
-    });
+    try {
+      await onSubmit({
+        venueId: selectedVenue.fsq_id,
+        venueName: selectedVenue.name,
+        venueAddress: selectedVenue.address,
+        venueCity: selectedVenue.city,
+        venueZone: selectedVenue.zone,
+        date: dateStr,
+        timeRange: timeStr,
+        text: concatenatedText,
+        username,
+        mood,
+        bio,
+        profileTheme,
+        emoji_avatar: emojiAvatar,
+        encounterTimestamp: new Date(datetimeVal).getTime()
+      });
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.message || String(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -471,16 +481,16 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null, cur
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", borderTop: "1px solid #eee", paddingTop: "12px", marginTop: "12px" }}>
           <button 
             onClick={handleBack} 
-            disabled={step === 1 || isModerating}
+            disabled={step === 1 || isModerating || isSubmitting}
             style={{ 
               minHeight: "44px", 
-              cursor: (step === 1 || isModerating) ? "not-allowed" : "pointer",
+              cursor: (step === 1 || isModerating || isSubmitting) ? "not-allowed" : "pointer",
               backgroundColor: "#dfdfdf",
               color: "#333",
               border: "1px solid #b5b5b5",
               fontSize: "12px",
               padding: "0 16px",
-              opacity: (step === 1 || isModerating) ? 0.5 : 1
+              opacity: (step === 1 || isModerating || isSubmitting) ? 0.5 : 1
             }}
           >
             &lt; Back
@@ -489,16 +499,17 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null, cur
           {step < 4 ? (
             <button 
               onClick={handleNext} 
-              disabled={isModerating} 
+              disabled={isModerating || isSubmitting} 
               style={{ 
                 minHeight: "44px", 
-                cursor: isModerating ? "not-allowed" : "pointer",
+                cursor: (isModerating || isSubmitting) ? "not-allowed" : "pointer",
                 backgroundColor: "#6699cc",
                 color: "white",
                 border: "1px solid #4a7ebb",
                 fontSize: "12px",
                 padding: "0 16px",
-                fontWeight: "bold"
+                fontWeight: "bold",
+                opacity: (isModerating || isSubmitting) ? 0.5 : 1
               }}
             >
               {isModerating ? "Checking..." : "Next >"}
@@ -506,31 +517,40 @@ export default function Wizard({ onClose, onSubmit, preselectedVenue = null, cur
           ) : (
             <button 
               onClick={handleFinish} 
+              disabled={isSubmitting}
               style={{ 
                 minHeight: "44px", 
-                cursor: "pointer", 
+                cursor: isSubmitting ? "not-allowed" : "pointer", 
                 backgroundColor: "#ffcc99", 
                 color: "#cc6600", 
                 border: "1px solid #cc9966",
                 fontWeight: "bold",
                 fontSize: "12px",
-                padding: "0 16px"
+                padding: "0 16px",
+                opacity: isSubmitting ? 0.7 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px"
               }}
             >
-              Finish
+              {isSubmitting && <span className="retro-spinner" style={{ borderTopColor: "#cc6600", borderLeftColor: "rgba(204, 102, 0, 0.2)", borderRightColor: "rgba(204, 102, 0, 0.2)", borderBottomColor: "rgba(204, 102, 0, 0.2)" }} />}
+              {isSubmitting ? "Posting..." : "Finish"}
             </button>
           )}
 
           <button 
             onClick={onClose} 
+            disabled={isSubmitting}
             style={{ 
               minHeight: "44px", 
-              cursor: "pointer",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
               backgroundColor: "#dfdfdf",
               color: "#333",
               border: "1px solid #b5b5b5",
               fontSize: "12px",
-              padding: "0 16px"
+              padding: "0 16px",
+              opacity: isSubmitting ? 0.5 : 1
             }}
           >
             Cancel

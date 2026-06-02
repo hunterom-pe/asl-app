@@ -1121,6 +1121,7 @@ export default function App() {
     } catch (err) {
       console.error("Error creating post:", err);
       setModerationError(err.message || String(err));
+      throw err;
     }
   };
 
