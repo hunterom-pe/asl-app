@@ -29,7 +29,8 @@ import {
   dbCallFunction,
   queryWhere,
   queryOrderBy,
-  queryLimit
+  queryLimit,
+  isSimulated
 } from "./firebase";
 import { searchVenues } from "./services/foursquare";
 import { getDeviceUuid } from "./services/security";
@@ -579,6 +580,40 @@ export default function App() {
       }, 0);
     }
   }, [userDoc, hasShownStrike2]);
+
+  // Clear simulated database on load for a fresh testing state (only in simulated mode)
+  useEffect(() => {
+    if (isSimulated) {
+      try {
+        const rawDb = localStorage.getItem("asl_db");
+        if (rawDb) {
+          const store = JSON.parse(rawDb);
+          let changed = false;
+          if (store.users) {
+            Object.keys(store.users).forEach(uid => {
+              if (store.users[uid].dailyClaimCount !== 0 || store.users[uid].dailyClaimDate !== "") {
+                store.users[uid].dailyClaimCount = 0;
+                store.users[uid].dailyClaimDate = "";
+                store.users[uid].handshake_cooldown = 0;
+                changed = true;
+              }
+            });
+          }
+          if (store.connections && Object.keys(store.connections).length > 0) {
+            store.connections = {};
+            changed = true;
+          }
+          if (changed) {
+            localStorage.setItem("asl_db", JSON.stringify(store));
+            console.log("[Simulation] Wiped connections and reset daily claim counts for fresh testing.");
+            window.location.reload();
+          }
+        }
+      } catch (err) {
+        console.error("Failed to clear simulated state:", err);
+      }
+    }
+  }, []);
 
   // Track pending outbound connection claims for the One-and-Done limit
   // Also runs a client-side TTL sweep: auto-deletes claims older than 48 hours
