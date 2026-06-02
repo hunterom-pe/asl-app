@@ -238,7 +238,7 @@ export default function App() {
   const [selectedProfileUser, setSelectedProfileUser] = useState(null);
 
   // Interceptor State
-  const [authActionCallback, setAuthActionCallback] = useState(null);
+  const authActionCallbackRef = useRef(null);
   const [moderationError, setModerationError] = useState("");
 
   // Connection throttle & lockout states
@@ -853,7 +853,7 @@ export default function App() {
   const runWithAuthenticationCheck = (action) => {
     if (!currentUser || currentUser.isAnonymous) {
       // User is guest/anonymous, launch Auth Wall
-      setAuthActionCallback(() => action);
+      authActionCallbackRef.current = action;
       setNavigationScreen("login");
     } else {
       // User is already logged in, run action directly
@@ -862,13 +862,19 @@ export default function App() {
   };
 
   const handleAuthSuccess = () => {
-    if (authActionCallback) {
-      authActionCallback(); // Resume action
-      setAuthActionCallback(null);
-    } else {
-      setNavigationScreen("home");
-    }
+    handleNavigateBack();
   };
+
+  // Trigger pending action after successful authentication has updated React state
+  useEffect(() => {
+    if (currentUser && !currentUser.isAnonymous && authActionCallbackRef.current) {
+      const callback = authActionCallbackRef.current;
+      authActionCallbackRef.current = null;
+      setTimeout(() => {
+        callback();
+      }, 50);
+    }
+  }, [currentUser]);
 
   // Post wizard submit handler
   const handleWizardSubmit = async (postData) => {
@@ -3058,7 +3064,10 @@ export default function App() {
         {/* LOGIN SCREEN */}
         {navigationScreen === "login" && (
           <AuthDialog 
-            onClose={() => setNavigationScreen("home")} 
+            onClose={() => {
+              handleNavigateBack();
+              authActionCallbackRef.current = null;
+            }} 
             onSuccess={handleAuthSuccess}
           />
         )}
