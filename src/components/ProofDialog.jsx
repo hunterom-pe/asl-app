@@ -1,5 +1,4 @@
 import { useState } from "react";
-import TitleBar from "./TitleBar";
 
 /**
  * "Blind Proof" Connection Verification dialog box.

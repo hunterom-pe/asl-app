@@ -1,5 +1,4 @@
 import { useState } from "react";
-import TitleBar from "./TitleBar";
 import { searchVenues } from "../services/foursquare";
 import { moderateTextWithGemini } from "../services/security";
 

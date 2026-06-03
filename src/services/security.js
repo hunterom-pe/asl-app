@@ -154,7 +154,7 @@ export async function moderateChatMessage(text) {
 function runLocalModerationFallback(text, contentType) {
   const normalized = text.toLowerCase().trim();
   
-  const hasPhone = /\b\d{3}[-.\\s]?\d{3}[-.\\s]?\d{4}\b|\b\d{7}\b|\b\d{10}\b/.test(text);
+  const hasPhone = /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b|\b\d{7}\b|\b\d{10}\b/.test(text);
   const hasEmail = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/.test(text);
   const hasHandle = /@\w+/.test(text) || /\b(instagram|twitter|facebook|tiktok|snapchat)\.com\b/i.test(text);
   const hasUrl = /\b(https?:\/\/|www\.)\S+\b/i.test(text);

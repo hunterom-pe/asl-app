@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import TitleBar from "./components/TitleBar";
 import AuthDialog from "./components/AuthDialog";
 import Wizard from "./components/Wizard";
 import ProofDialog from "./components/ProofDialog";
