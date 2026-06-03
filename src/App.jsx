@@ -854,19 +854,30 @@ export default function App() {
     const handleOnline = async () => {
       const queuedStr = localStorage.getItem("asl_offline_posts");
       if (!queuedStr) return;
-      try {
-        const queuedPosts = JSON.parse(queuedStr);
-        if (!Array.isArray(queuedPosts) || queuedPosts.length === 0) return;
-        
-        console.log("Device is back online! Syncing offline posts in background:", queuedPosts);
-        for (const postData of queuedPosts) {
-          // Add post to Firestore
-          await dbAddDoc("posts", {
-            ...postData,
-            timestamp: Date.now()
-          });
 
-          // Also update the user's profile card
+      let queuedPosts;
+      try {
+        queuedPosts = JSON.parse(queuedStr);
+      } catch {
+        localStorage.removeItem("asl_offline_posts"); // corrupt queue — discard
+        return;
+      }
+      if (!Array.isArray(queuedPosts) || queuedPosts.length === 0) return;
+
+      console.log("Device is back online! Syncing offline posts in background:", queuedPosts);
+
+      let sentCount = 0;
+      let rejectedCount = 0;
+
+      // Process one at a time and persist the queue after each item so a later
+      // failure can never cause an already-sent post to be re-transmitted as a
+      // duplicate. Posts route through createPostSecure, which enforces
+      // moderation / cooldown / daily limits.
+      while (queuedPosts.length > 0) {
+        const postData = queuedPosts[0];
+        try {
+          await dbAddDoc("posts", { ...postData, timestamp: Date.now() });
+
           if (currentUser) {
             await dbSetDoc("users", currentUser.uid, {
               username: postData.username,
@@ -877,12 +888,36 @@ export default function App() {
               lastPostAt: Date.now()
             }, true);
           }
+
+          queuedPosts.shift();
+          localStorage.setItem("asl_offline_posts", JSON.stringify(queuedPosts));
+          sentCount++;
+        } catch (err) {
+          const code = err?.code || "";
+          // Server-side rejections (moderation, rate limit, cooldown) will never
+          // succeed on retry — drop them so the queue can't get stuck forever.
+          if (typeof code === "string" && code.startsWith("functions/")) {
+            queuedPosts.shift();
+            localStorage.setItem("asl_offline_posts", JSON.stringify(queuedPosts));
+            rejectedCount++;
+            console.warn("Offline post permanently rejected, dropped from queue:", code, err?.message);
+            continue;
+          }
+          // Transient (e.g. network) error — keep remaining posts for the next reconnect.
+          console.error("Offline post sync interrupted, will retry later:", err);
+          break;
         }
-        
-        localStorage.removeItem("asl_offline_posts");
-        alert("Sync Complete: Your queued offline posts have been successfully transmitted to the server!");
-      } catch (err) {
-        console.error("Error background-syncing offline posts:", err);
+      }
+
+      if (sentCount > 0 || rejectedCount > 0) {
+        let msg = "";
+        if (sentCount > 0) {
+          msg += `Sync Complete: ${sentCount} queued post${sentCount > 1 ? "s" : ""} transmitted to the server.`;
+        }
+        if (rejectedCount > 0) {
+          msg += `${msg ? " " : ""}${rejectedCount} post${rejectedCount > 1 ? "s were" : " was"} rejected (moderation or rate limit) and discarded.`;
+        }
+        alert(msg);
       }
     };
 
