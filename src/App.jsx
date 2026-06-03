@@ -948,8 +948,8 @@ export default function App() {
             }
           }
         });
-        // Sort descending by timestamp
-        posts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        // Sort descending by timestamp (newest posts at the top)
+        posts.sort((a, b) => (b.timestamp || b.encounterTimestamp || 0) - (a.timestamp || a.encounterTimestamp || 0));
         setVenuePosts(posts);
       }
     );
