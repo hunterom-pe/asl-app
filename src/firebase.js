@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
-import { 
+import { Capacitor } from "@capacitor/core";
+import {
   getAuth,
   initializeAuth,
   indexedDBLocalPersistence,
@@ -69,10 +70,72 @@ if (import.meta.env.PROD && !isRealFirebaseConfigured) {
 let realAuth = null;
 let realDb = null;
 
+// ──────────────────────────────────────────────────────────────────────────
+// Firebase App Check (anti-abuse / device attestation)
+//
+// App Check proves a request comes from a genuine, untampered build of THIS app
+// before Firestore / Cloud Functions will serve it — blocking scripted abuse of
+// the paid Gemini + Foursquare endpoints and bulk profile scraping, even by a
+// caller holding a valid anonymous auth token.
+//
+// SAFETY: this stays completely INERT unless VITE_APPCHECK_ENABLED is set, so it
+// can be shipped now and switched on only after the Firebase console + native
+// provider are configured. Do NOT turn on enforcement in the console until the
+// "verified requests" metric shows tokens arriving from real devices, or you
+// will lock out every user. See APPCHECK.md for the staged rollout runbook.
+// ──────────────────────────────────────────────────────────────────────────
+async function setupAppCheck(firebaseApp) {
+  if (!import.meta.env.VITE_APPCHECK_ENABLED) return; // inert by default
+
+  try {
+    const { initializeAppCheck, CustomProvider, ReCaptchaV3Provider } = await import("firebase/app-check");
+
+    // App Attest only works on real hardware. For the iOS Simulator / web dev,
+    // a debug token registered in the Firebase console lets requests through.
+    const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
+    if (debugToken) {
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
+    }
+
+    let provider;
+    if (Capacitor.isNativePlatform()) {
+      // Native iOS: pull a hardware-attested (App Attest) token from the
+      // @capacitor-firebase/app-check plugin. Accessed via the Capacitor.Plugins
+      // registry so the bundler never hard-requires the package — if the plugin
+      // isn't installed yet, App Check simply stays off (caught below).
+      provider = new CustomProvider({
+        getToken: async () => {
+          const plugin = Capacitor?.Plugins?.FirebaseAppCheck;
+          if (!plugin || typeof plugin.getToken !== "function") {
+            throw new Error("FirebaseAppCheck native plugin not installed");
+          }
+          const { token, expireTimeMillis } = await plugin.getToken();
+          return { token, expireTimeMillis };
+        }
+      });
+    } else if (import.meta.env.VITE_APPCHECK_RECAPTCHA_KEY) {
+      // Web build: reCAPTCHA v3.
+      provider = new ReCaptchaV3Provider(import.meta.env.VITE_APPCHECK_RECAPTCHA_KEY);
+    } else {
+      return; // no usable provider configured for this platform
+    }
+
+    initializeAppCheck(firebaseApp, { provider, isTokenAutoRefreshEnabled: true });
+    console.log("[AppCheck] initialized");
+  } catch (e) {
+    // Never let App Check setup break app startup — fail open on the client; the
+    // backend enforcement (once enabled) is what actually rejects bad requests.
+    console.warn("[AppCheck] setup skipped/failed:", e);
+  }
+}
+
 if (isRealFirebaseConfigured) {
   try {
     const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    
+
+    // Fire-and-forget; inert unless explicitly enabled via env (see above).
+    setupAppCheck(firebaseApp);
+
     // Capacitor iOS WebView has a known bug where Firebase Auth hangs indefinitely
     // when detecting the default persistence. Explicitly setting persistence fixes it.
     try {
