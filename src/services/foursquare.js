@@ -674,7 +674,24 @@ export const MOCK_VENUES = [
  * @param {string} filterCity Optional city filter
  * @returns {Promise<Array>} List of venues with id, name, address, city, zone
  */
+// Short-lived in-memory cache so repeated searches (typing, re-opening the
+// wizard, revisiting a city) don't re-hit the Cloud Function / Foursquare on
+// every call. Keyed by query+city; cleared on reload.
+const _venueCache = new Map();
+const VENUE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function searchVenues(query, filterCity = "") {
+  const cacheKey = `${(query || "").trim().toLowerCase()}|${(filterCity || "").toLowerCase()}`;
+  const cached = _venueCache.get(cacheKey);
+  if (cached && (Date.now() - cached.at) < VENUE_CACHE_TTL) {
+    return cached.results;
+  }
+  const results = await searchVenuesUncached(query, filterCity);
+  _venueCache.set(cacheKey, { at: Date.now(), results });
+  return results;
+}
+
+async function searchVenuesUncached(query, filterCity = "") {
   const cleanQuery = (query || "").trim().toLowerCase();
 
   let results;

@@ -25,6 +25,7 @@ import {
   dbIncrementField,
   dbDeleteDoc,
   dbGetDocs,
+  dbCountDocs,
   dbSubmitReport,
   dbCallFunction,
   queryWhere,
@@ -431,83 +432,13 @@ export default function App() {
               selectedCity: "Cupertino",
               homeCity: "Cupertino"
             }, true);
-            
-            // 2. Create mock posts for Cupertino venues if they don't exist
-            const postsSnap = await dbGetDocs("posts", [queryWhere("venueId", "==", "venue_cafemacs")]);
-            if (postsSnap.empty) {
-              console.log("Injecting reviewer mock posts...");
-              // Create mock author "tom"
-              await dbSetDoc("users", "tom", {
-                username: "tom",
-                emoji_avatar: "👨",
-                bio: "Your first friend. I like music.",
-                headline: "Everyones first friend!",
-                homeCity: "Cupertino",
-                selectedCity: "Cupertino"
-              }, true);
-              
-              await dbAddDoc("posts", {
-                userId: "tom",
-                username: "tom",
-                emoji_avatar: "👨",
-                mood: "nostalgic",
-                bio: "Your first friend.",
-                venueId: "venue_cafemacs",
-                venueName: "Caffe Macs",
-                venueCity: "Cupertino",
-                text: "Saw someone with a classic rainbow Apple logo shirt here. Are you a legacy developer? Let's connect!",
-                timestamp: Date.now() - 3600000,
-                encounterDate: "Today",
-                encounterTime: "Lunchtime",
-                uniquenessPrompt: "What color was the shirt?",
-                proofAnswer: "rainbow",
-                status: "active",
-                thumbsUpCount: 2
-              });
-              
-              await dbAddDoc("posts", {
-                userId: "tom",
-                username: "tom",
-                emoji_avatar: "👨",
-                mood: "chill",
-                bio: "Your first friend.",
-                venueId: "venue_applepark",
-                venueName: "Apple Park Visitor Center Cafe",
-                venueCity: "Cupertino",
-                text: "Sitting by the olive trees. Let's chat about dial-up portals.",
-                timestamp: Date.now() - 7200000,
-                encounterDate: "Today",
-                encounterTime: "Morning",
-                uniquenessPrompt: "What trees were they?",
-                proofAnswer: "olive",
-                status: "active",
-                thumbsUpCount: 5
-              });
-            }
 
-            // 3. Create a mock connection/claim from Tom to the reviewer if none exists
-            const connSnap = await dbGetDocs("connections", [
-              queryWhere("receiverId", "==", user.uid),
-              queryWhere("senderId", "==", "tom")
-            ]);
-            if (connSnap.empty) {
-              console.log("Injecting reviewer mock connection...");
-              await dbAddDoc("connections", {
-                senderId: "tom",
-                senderUsername: "tom",
-                senderEmoji: "👨",
-                receiverId: user.uid,
-                receiverUsername: "Reviewer",
-                receiverEmoji: "🍎",
-                postId: "mock_post_reviewer",
-                postText: "Saw you at Caffe Macs looking at code.",
-                status: "pending",
-                encounterDetails: "We locked eyes near the espresso machine.",
-                timestamp: Date.now(),
-                venueName: "Caffe Macs",
-                proofText: "I was wearing a classic rainbow Apple logo shirt!"
-              });
-            }
+            // NOTE: demo post/connection seeding was removed here. It wrote
+            // directly to users/tom, posts, and connections, which the security
+            // rules and secure Cloud Functions reject in production — so it only
+            // ever did anything in the local mock backend. Seed Cupertino demo
+            // content into the production database directly instead (see
+            // PERFORMANCE.md → "App Store review data").
           }
         };
 
@@ -766,31 +697,10 @@ export default function App() {
     };
   }, [navigationScreen, currentUser]);
 
-  // Live statistics and dynamic homepage users subscriptions
-  useEffect(() => {
-    if (!currentUser) return;
-    const POST_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-    // Total posts count
-    const unsubPosts = dbOnSnapshot("posts", [], (snapshot) => {
-      const now = Date.now();
-      let count = 0;
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const rawTs = data.timestamp || data.encounterTimestamp || 0;
-        const tsMillis = (rawTs && typeof rawTs.toMillis === "function")
-          ? rawTs.toMillis()
-          : ((rawTs && rawTs.seconds !== undefined) ? rawTs.seconds * 1000 : Number(rawTs || 0));
-        if (!tsMillis || (now - tsMillis) <= POST_TTL_MS) {
-          count++;
-        }
-      });
-      setAllPostsCount(count);
-    });
-
-    return () => {
-      unsubPosts();
-    };
-  }, [currentUser]);
+  // NOTE: the total-posts count is no longer a separate full-collection
+  // subscription. It's derived from the bounded global feed listener below
+  // (setAllPostsCount is called there), which eliminates a second stream of the
+  // entire posts collection per client.
 
   // One-time load: active buddy count + cool new people (targeted queries, not full scan)
   useEffect(() => {
@@ -798,11 +708,12 @@ export default function App() {
     const loadUserStats = async () => {
       try {
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        const [activeSnap, newSnap] = await Promise.all([
-          dbGetDocs("profiles", [queryWhere("lastLogin", ">", sevenDaysAgo)]),
+        const [activeCount, newSnap] = await Promise.all([
+          // Count via server-side aggregation instead of downloading every active profile.
+          dbCountDocs("profiles", [queryWhere("lastLogin", ">", sevenDaysAgo)]),
           dbGetDocs("profiles", [queryOrderBy("createdAt", "desc"), queryLimit(10)])
         ]);
-        setActiveBuddiesCount(activeSnap.size);
+        setActiveBuddiesCount(activeCount);
         const list = newSnap.docs
           .map(doc => ({ uid: doc.id, ...doc.data() }))
           .filter(u => u.uid !== "sysop_admin" && u.uid !== "tom")
@@ -820,32 +731,44 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return;
     const POST_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-    const unsub = dbOnSnapshot("posts", [], (snapshot) => {
-      const posts = [];
-      const now = Date.now();
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.status !== "suppressed") {
-          const rawTs = data.timestamp || data.encounterTimestamp || 0;
-          const tsMillis = (rawTs && typeof rawTs.toMillis === "function")
-            ? rawTs.toMillis()
-            : ((rawTs && rawTs.seconds !== undefined) ? rawTs.seconds * 1000 : Number(rawTs || 0));
-          
-          if (tsMillis && (now - tsMillis) > POST_TTL_MS) {
-            // Client-side TTL sweep: delete user's own expired post from Firestore
-            if (data.userId === currentUser.uid) {
-              dbDeleteDoc("posts", doc.id).catch(err =>
-                console.warn("TTL sweep: could not delete expired post", doc.id, err)
-              );
+    // Bounded global feed: newest posts only, capped server-side so per-client
+    // read cost never grows with the total size of the posts collection. Every
+    // post created via createPostSecure carries a server `timestamp`, so ordering
+    // by it is safe and never hides posts.
+    const GLOBAL_FEED_LIMIT = 200;
+    const unsub = dbOnSnapshot(
+      "posts",
+      [queryOrderBy("timestamp", "desc"), queryLimit(GLOBAL_FEED_LIMIT)],
+      (snapshot) => {
+        const posts = [];
+        const now = Date.now();
+        snapshot.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.status !== "suppressed") {
+            const rawTs = data.timestamp || data.encounterTimestamp || 0;
+            const tsMillis = (rawTs && typeof rawTs.toMillis === "function")
+              ? rawTs.toMillis()
+              : ((rawTs && rawTs.seconds !== undefined) ? rawTs.seconds * 1000 : Number(rawTs || 0));
+
+            if (tsMillis && (now - tsMillis) > POST_TTL_MS) {
+              // Client-side TTL sweep for the user's own expired posts. (A native
+              // Firestore TTL policy on `timestamp` is the durable cleanup — see
+              // PERFORMANCE.md — this only sweeps what's in the bounded window.)
+              if (data.userId === currentUser.uid) {
+                dbDeleteDoc("posts", doc.id).catch(err =>
+                  console.warn("TTL sweep: could not delete expired post", doc.id, err)
+                );
+              }
+            } else {
+              posts.push({ id: doc.id, ...data });
             }
-          } else {
-            posts.push({ id: doc.id, ...data });
           }
-        }
-      });
-      posts.sort((a, b) => (b.timestamp || b.encounterTimestamp || 0) - (a.timestamp || a.encounterTimestamp || 0));
-      setGlobalActivePosts(posts);
-    });
+        });
+        posts.sort((a, b) => (b.timestamp || b.encounterTimestamp || 0) - (a.timestamp || a.encounterTimestamp || 0));
+        setGlobalActivePosts(posts);
+        setAllPostsCount(posts.length);
+      }
+    );
     return () => unsub();
   }, [currentUser]);
 
@@ -935,7 +858,12 @@ export default function App() {
       return;
     }
 
-    const unsub = dbOnSnapshot("profiles", [], (snapshot) => {
+    // Query only profiles that favorited THIS venue (array-contains) instead of
+    // streaming the entire profiles collection and filtering on the client.
+    const unsub = dbOnSnapshot(
+      "profiles",
+      [queryWhere("favorited_bars", "array-contains", selectedVenue.fsq_id), queryLimit(50)],
+      (snapshot) => {
       const list = [];
       snapshot.docs.forEach(doc => {
         const data = doc.data();
@@ -962,9 +890,11 @@ export default function App() {
     }
 
     const POST_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+    // Fetch only THIS venue's posts (server-side where) instead of streaming
+    // every post in the collection and filtering client-side.
     const unsubPosts = dbOnSnapshot(
       "posts",
-      [],
+      [queryWhere("venueId", "==", selectedVenue.fsq_id), queryLimit(100)],
       (snapshot) => {
         const posts = [];
         const now = Date.now();

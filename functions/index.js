@@ -134,7 +134,11 @@ const PUBLIC_PROFILE_FIELDS = [
   "lastActiveAt"
 ];
 
-exports.syncProfile = onDocumentWritten("users/{userId}", async (event) => {
+// User-facing profile text fields that are publicly visible and must be
+// moderated before they reach the public mirror.
+const MODERATED_PROFILE_FIELDS = ["username", "bio", "headline", "mood"];
+
+exports.syncProfile = onDocumentWritten({ document: "users/{userId}", secrets: [geminiKey] }, async (event) => {
   const userId = event.params.userId;
   const profileRef = admin.firestore().collection("profiles").doc(userId);
   const after = event.data.after;
@@ -146,9 +150,36 @@ exports.syncProfile = onDocumentWritten("users/{userId}", async (event) => {
   }
 
   const data = after.data();
+  const before = event.data.before && event.data.before.exists ? event.data.before.data() : {};
+
+  // Authoritative moderation of public profile text. `profiles` is written ONLY
+  // by this trigger, so sanitizing here guarantees no unmoderated username/bio/
+  // headline/mood is ever exposed to other users — even if a scripted client
+  // wrote straight to its own users/{uid} doc. Only moderate fields that ACTUALLY
+  // changed so routine lastLogin / lastActiveAt writes don't incur Gemini cost.
+  const sanitized = {};
+  for (const field of MODERATED_PROFILE_FIELDS) {
+    const value = data[field];
+    if (typeof value === "string" && value.trim() && value !== before[field]) {
+      try {
+        const { approved } = await moderateContent(value, "chat", process.env.GEMINI_API_KEY);
+        if (!approved) {
+          sanitized[field] = field === "username" ? "hidden_user" : "[removed]";
+        }
+      } catch (e) {
+        // Fail open on the mirror; the client-side advisory check is the first gate.
+        console.error(`Profile moderation failed for field "${field}" (user ${userId}):`, e);
+      }
+    }
+  }
+
   const publicData = {};
   for (const field of PUBLIC_PROFILE_FIELDS) {
-    if (data[field] !== undefined) publicData[field] = data[field];
+    if (data[field] !== undefined) {
+      publicData[field] = Object.prototype.hasOwnProperty.call(sanitized, field)
+        ? sanitized[field]
+        : data[field];
+    }
   }
 
   // Full overwrite (no merge) so fields removed from the user doc also disappear

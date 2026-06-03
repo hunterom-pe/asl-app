@@ -36,6 +36,7 @@ import {
   limit,
   serverTimestamp,
   getDocs,
+  getCountFromServer,
   increment
 } from "firebase/firestore";
 
@@ -1946,6 +1947,32 @@ export const dbGetDocs = async (collectionName, queryConstraints = []) => {
   }
   const snap = await getDocs(qRef);
   return snap;
+};
+
+// Count documents matching a query WITHOUT downloading them. Uses Firestore's
+// server-side aggregation (billed as a tiny fraction of reading every doc), so
+// "X users online / Y encounters" stats don't scale their cost with the DB size.
+export const dbCountDocs = async (collectionName, queryConstraints = []) => {
+  if (isSimulated) {
+    const snap = await dbGetDocs(collectionName, queryConstraints);
+    return snap.size;
+  }
+  let qRef = collection(realDb, collectionName);
+  const firestoreConstraints = [];
+  queryConstraints.forEach(c => {
+    if (c.type === "where") {
+      firestoreConstraints.push(where(c.field, c.op, c.value));
+    } else if (c.type === "orderBy") {
+      firestoreConstraints.push(orderBy(c.field, c.direction));
+    } else if (c.type === "limit") {
+      firestoreConstraints.push(limit(c.value));
+    }
+  });
+  if (firestoreConstraints.length > 0) {
+    qRef = query(qRef, ...firestoreConstraints);
+  }
+  const snap = await getCountFromServer(qRef);
+  return snap.data().count;
 };
 
 export const dbOnSnapshot = (collectionName, queryConstraints = [], callback) => {

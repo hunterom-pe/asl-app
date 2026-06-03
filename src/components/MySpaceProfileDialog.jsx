@@ -4,6 +4,7 @@ import MySpaceMusicPlayer from "./MySpaceMusicPlayer";
 import { dbGetDoc, dbSubmitReport } from "../firebase";
 import { Share } from "@capacitor/share";
 import { fetchProductDetails, purchaseProduct, restorePurchases } from "../services/iap";
+import { moderateTextWithGemini } from "../services/security";
 
 const extractSpotifyTrackId = (input) => {
   const trimmed = input.trim();
@@ -365,7 +366,7 @@ export default function MySpaceProfileDialog({
     setEditEmojiAvatar(current.join(""));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editUsername.trim()) {
       alert("Display name cannot be empty.");
       return;
@@ -406,6 +407,26 @@ export default function MySpaceProfileDialog({
         return;
       }
       formattedSpotifyTrackUri = `spotify:track:${trackId}`;
+    }
+
+    // Advisory moderation of public profile text before saving. This is the
+    // fast first gate; the syncProfile Cloud Function re-moderates server-side
+    // (bypass-proof) before anything reaches the public profile mirror.
+    try {
+      const profileText = [editUsername, editHeadline, editBio, editMood]
+        .filter(Boolean)
+        .join("\n");
+      const mod = await moderateTextWithGemini(profileText, "chat");
+      if (mod && mod.approved === false) {
+        setProfileError(
+          "PROFILE REJECTED: Your display name, tagline, or bio was flagged for personal info, links, or hateful/abusive language. Please revise and try again."
+        );
+        return;
+      }
+    } catch (err) {
+      // Moderation service unavailable — let the save proceed; the server-side
+      // syncProfile check still sanitizes the public mirror.
+      console.warn("Profile moderation check unavailable:", err);
     }
 
     if (onSaveProfile) {
