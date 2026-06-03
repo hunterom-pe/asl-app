@@ -79,8 +79,8 @@ service cloud.firestore {
         request.auth.uid == resource.data.senderId || 
         request.auth.uid == resource.data.receiverId
       );
-      // Collection queries: allow authenticated users (app queries by senderId or receiverId)
-      allow list: if isAuthenticated();
+      // Collection queries: query must filter by senderId or receiverId to match this user
+      allow list: if isAuthenticated() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
       
       // Connections are created exclusively by the createConnectionSecure Cloud
       // Function (via the Admin SDK, which bypasses these rules). Direct client
@@ -106,8 +106,8 @@ service cloud.firestore {
     match /chats/{chatId} {
       // Single-document reads: user must be a participant
       allow get: if isAuthenticated() && request.auth.uid in resource.data.participants;
-      // Collection queries: allow when filtering by participants (array-contains)
-      allow list: if isAuthenticated();
+      // Collection queries: query must filter by participants array-contains uid
+      allow list: if isAuthenticated() && request.auth.uid in resource.data.participants;
       allow create: if isAuthenticated() 
                     && request.auth.uid in request.resource.data.participants
                     && get(/databases/$(database)/documents/connections/$(request.resource.data.connectionId)).data.status == 'accepted'
