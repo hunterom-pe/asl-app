@@ -424,51 +424,51 @@ export const MOCK_VENUES = [
     hours_display: "Open Daily 5 PM - 2 AM",
     amenities: ["Rooftop Terrace", "Japanese-Inspired Cocktails", "Omakase Menu", "City Skyline Views"]
   },
-  // San Francisco
+  // Cupertino (Additional)
   {
-    fsq_id: "venue_cinch",
-    name: "The Cinch Saloon",
-    address: "1723 Polk St",
-    city: "San Francisco",
-    zone: "Polk Gulch",
-    formatted_address: "1723 Polk St, San Francisco, CA 94109",
-    price: 1,
+    fsq_id: "venue_duke",
+    name: "The Duke of Edinburgh",
+    address: "10801 N Wolfe Rd",
+    city: "Cupertino",
+    zone: "Main Street",
+    formatted_address: "10801 N Wolfe Rd, Cupertino, CA 95014",
+    price: 2,
     rating: 8.5,
-    categories: ["Historic Bar", "Neighborhood Pub"],
-    open_start: 12,
-    open_end: 2,
-    hours_display: "Open Daily 12 PM - 2 AM",
-    amenities: ["Pool Table", "Smoking Patio", "Retro Jukebox", "Credit Cards"]
-  },
-  {
-    fsq_id: "venue_lipo",
-    name: "Li Po Cocktail Lounge",
-    address: "916 Grant Ave",
-    city: "San Francisco",
-    zone: "Chinatown",
-    formatted_address: "916 Grant Ave, San Francisco, CA 94108",
-    price: 2,
-    rating: 8.9,
-    categories: ["Cocktail Lounge", "Chinese Restaurant"],
-    open_start: 14,
-    open_end: 2,
-    hours_display: "Open Daily 2 PM - 2 AM",
-    amenities: ["Famous Chinese Mai Tais", "Historic Neon Lantern", "Cozy Red Booths"]
-  },
-  {
-    fsq_id: "venue_zeitgeist",
-    name: "Zeitgeist",
-    address: "199 Valencia St",
-    city: "San Francisco",
-    zone: "Mission",
-    formatted_address: "199 Valencia St, San Francisco, CA 94103",
-    price: 2,
-    rating: 9.1,
-    categories: ["Beer Garden", "Neighborhood Dive"],
+    categories: ["British Pub", "Neighborhood Spot"],
     open_start: 11,
     open_end: 2,
     hours_display: "Open Daily 11 AM - 2 AM",
-    amenities: ["Massive Beer Garden", "Huge Draft List", "Bicycle Racks", "Bloody Marys"]
+    amenities: ["Outdoor Patio", "Dart Boards", "Fish & Chips", "Imported Ales"]
+  },
+  {
+    fsq_id: "venue_lazydog",
+    name: "Lazy Dog Restaurant & Bar",
+    address: "19359 Stevens Creek Blvd",
+    city: "Cupertino",
+    zone: "Main Street",
+    formatted_address: "19359 Stevens Creek Blvd, Cupertino, CA 95014",
+    price: 2,
+    rating: 8.7,
+    categories: ["American Restaurant", "Bar"],
+    open_start: 11,
+    open_end: 0,
+    hours_display: "Open Daily 11 AM - Midnight",
+    amenities: ["Dog Friendly Patio", "Craft Cocktails", "Happy Hour", "Fire Pit"]
+  },
+  {
+    fsq_id: "venue_oasis",
+    name: "The Oasis Cupertino",
+    address: "Stevens Creek Blvd",
+    city: "Cupertino",
+    zone: "Main Street",
+    formatted_address: "Stevens Creek Blvd, Cupertino, CA 95014",
+    price: 1,
+    rating: 8.3,
+    categories: ["Dive Bar", "Neighborhood Spot"],
+    open_start: 14,
+    open_end: 2,
+    hours_display: "Open Daily 2 PM - 2 AM",
+    amenities: ["Cheap Beer", "Pool Table", "Retro Vibe", "Friendly Bartenders"]
   },
   // Austin
   {
@@ -776,6 +776,16 @@ async function searchVenuesUncached(query, filterCity = "") {
         } else {
           zone = "Downtown";
         }
+      } else if (city.toLowerCase() === "cupertino") {
+        const lowerAddress = address.toLowerCase();
+        const lowerName = place.name.toLowerCase();
+        if (lowerAddress.includes("infinite loop") || lowerName.includes("macs") || lowerName.includes("infinite")) {
+          zone = "HQ";
+        } else if (lowerAddress.includes("tantau") || lowerAddress.includes("apple park") || lowerName.includes("apple park")) {
+          zone = "Campus";
+        } else {
+          zone = "Main Street";
+        }
       }
 
       const rawLocality = (place.location?.locality || "").toLowerCase();
@@ -786,16 +796,10 @@ async function searchVenuesUncached(query, filterCity = "") {
         normalizedCity = "New York";
       } else if (rawLocality === "nashville" || rawRegion === "tn" || rawRegion === "tennessee") {
         normalizedCity = "Nashville";
-      } else if (rawLocality === "san francisco" || rawRegion === "ca" || rawRegion === "california") {
-        if (rawLocality === "cupertino") {
-          normalizedCity = "Cupertino";
-        } else {
-          normalizedCity = "San Francisco";
-        }
+      } else if (rawLocality === "cupertino" || rawLocality === "san francisco" || rawRegion === "ca" || rawRegion === "california") {
+        normalizedCity = "Cupertino";
       } else if (rawLocality === "austin" || rawRegion === "tx" || rawRegion === "texas") {
         normalizedCity = "Austin";
-      } else if (rawLocality === "cupertino") {
-        normalizedCity = "Cupertino";
       }
 
       return {

@@ -2590,25 +2590,25 @@ export default function App() {
                     <div className="city-portal-arrow">➡️</div>
                   </div>
 
-                  {/* San Francisco Area Option */}
+                  {/* Cupertino Area Option */}
                   <div 
                     className="city-portal-card"
                     onClick={() => {
-                      setSelectedCity("San Francisco");
+                      setSelectedCity("Cupertino");
                       setNavigationScreen("bar");
                       if (currentUser) {
-                        const updates = { selectedCity: "San Francisco" };
+                        const updates = { selectedCity: "Cupertino" };
                         if (!userDoc?.homeCity) {
-                          updates.homeCity = "San Francisco";
+                          updates.homeCity = "Cupertino";
                         }
                         dbSetDoc("users", currentUser.uid, updates, true);
                       }
                     }}
                   >
-                    <div className="city-portal-icon">🌁</div>
+                    <div className="city-portal-icon">💻</div>
                     <div style={{ flex: 1 }}>
-                      <div className="city-portal-title">San Francisco Area Node</div>
-                      <div className="city-portal-desc">Bay Area Hub — Historic neighborhood dive walls</div>
+                      <div className="city-portal-title">Cupertino Area Node</div>
+                      <div className="city-portal-desc">Silicon Valley Hub — Infinite Loop cafes & campus hangouts</div>
                       <div className="city-portal-status" style={{ color: "#d0a000" }}>📡 Network Status: ONLINE (BETA)</div>
                     </div>
                     <div className="city-portal-arrow">➡️</div>
