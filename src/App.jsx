@@ -414,14 +414,28 @@ export default function App() {
 
       setCurrentUser(user);
       if (user && !user.isAnonymous) {
-        // Sync user device registration in background
-        dbSetDoc("users", user.uid, {
-          uid: user.uid,
-          email: user.email || "",
-          uuid: deviceUuid,
-          lastLogin: Date.now(),
-          unlockedThemes: ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"]
-        }, true);
+        // Sync user device registration in background without overwriting theme purchases
+        const syncUserDoc = async () => {
+          try {
+            const docSnap = await dbGetDoc("users", user.uid);
+            const updatePayload = {
+              uid: user.uid,
+              email: user.email || "",
+              uuid: deviceUuid,
+              lastLogin: Date.now()
+            };
+            
+            // Only initialize default themes if the document is new or lacks them
+            if (!docSnap.exists() || !docSnap.data().unlockedThemes) {
+              updatePayload.unlockedThemes = ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"];
+            }
+            
+            await dbSetDoc("users", user.uid, updatePayload, true);
+          } catch (err) {
+            console.error("Failed to sync user document on login:", err);
+          }
+        };
+        syncUserDoc();
 
         // Reviewer Mode Mock Data Injection
         const injectReviewerMockData = async () => {

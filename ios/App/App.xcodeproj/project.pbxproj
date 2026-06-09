@@ -28,7 +28,7 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
-		5A2C76272FCCD697008A8514 /* asl_purcahes.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = asl_purcahes.storekit; path = App/asl_purcahes.storekit; sourceTree = "<group>"; };
+		5A2C76272FCCD697008A8514 /* asl_purchases.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = asl_purchases.storekit; path = App/asl_purchases.storekit; sourceTree = "<group>"; };
 		5A3994D02FCE02E400B6D62D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -48,7 +48,7 @@
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
-				5A2C76272FCCD697008A8514 /* asl_purcahes.storekit */,
+				5A2C76272FCCD697008A8514 /* asl_purchases.storekit */,
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,

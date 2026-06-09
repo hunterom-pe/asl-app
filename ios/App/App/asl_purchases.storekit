@@ -20,8 +20,8 @@
       "internalID" : "A8F67D77",
       "localizations" : [
         {
-          "description" : "",
-          "displayName" : "",
+          "description" : "Unlocks 3 themes: Straw Hat Pirate, Slayer Blade, Sorcery Curse.",
+          "displayName" : "Otaku Legends Pack",
           "locale" : "en_US"
         }
       ],
@@ -35,8 +35,8 @@
       "internalID" : "B3840583",
       "localizations" : [
         {
-          "description" : "",
-          "displayName" : "",
+          "description" : "Unlocks 3 themes: Pocket Crossing, Spirit Bathhouse, Matcha Tea.",
+          "displayName" : "Cozy Village Pack",
           "locale" : "en_US"
         }
       ],
@@ -50,8 +50,8 @@
       "internalID" : "5EE9C58A",
       "localizations" : [
         {
-          "description" : "",
-          "displayName" : "",
+          "description" : "Unlocks 3 themes: 8-Ball, Long Nails, Sheer.",
+          "displayName" : "Y2K Glam Pack",
           "locale" : "en_US"
         }
       ],
