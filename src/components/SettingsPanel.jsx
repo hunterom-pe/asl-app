@@ -664,25 +664,30 @@ export default function SettingsPanel({ currentUser, userDoc, onNavigateBack }) 
               textAlign: "left"
             }}>
               <h2 style={{ fontSize: "13px", margin: "0 0 4px 0", color: "#000" }}>Privacy Policy</h2>
-              <p style={{ margin: "0 0 8px 0", color: "#666" }}>Last Updated: May 31, 2026</p>
-              <p style={{ margin: "0 0 8px 0" }}>Welcome to <strong>asl</strong>. We respect your privacy and protect the data you share with us.</p>
-              
+              <p style={{ margin: "0 0 8px 0", color: "#666" }}>Last Updated: June 9, 2026</p>
+              <p style={{ margin: "0 0 8px 0" }}><strong>asl</strong> is for users 18+. This summary explains how we handle your data; the full policy is at asl-app-prod.web.app/privacy.html.</p>
+
               <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>1. Information We Collect</h3>
-              <p style={{ margin: "0 0 8px 0" }}>• Account: Email address or anonymous unique identifier.</p>
-              <p style={{ margin: "0 0 8px 0" }}>• Profiles: Custom handles, bios, active moods, and emojis.</p>
-              <p style={{ margin: "0 0 8px 0" }}>• UGC: Missed connections posted and chat messages.</p>
-              <p style={{ margin: "0 0 8px 0" }}>• Location: Regional node selection (no background GPS tracking).</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Account: email & password, or an anonymous ID for guests.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Profile: handle, headline, bio, mood, emoji avatar, theme, favorited venues, optional Spotify track.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• UGC: missed-connection posts, proofs, and private chat messages.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Precise location (only while using the app, with permission) to show nearby venues/regions. No background tracking.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Device identifier for security and ban enforcement.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Purchase receipts for in-app theme packs (card details are handled by Apple, never by us).</p>
 
               <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>2. How We Use It</h3>
-              <p style={{ margin: "0 0 8px 0" }}>• To display missed connection messages at matching venues.</p>
-              <p style={{ margin: "0 0 8px 0" }}>• To route anonymous AIM chats between partners.</p>
-              <p style={{ margin: "0 0 8px 0" }}>• To prevent fraud, abuse, and spam checkouts.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Show your posts to users at matching venues/regions and route private chats.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Moderate content for safety and prevent abuse, fraud, and spam.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• Verify in-app purchases.</p>
 
-              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>3. Data Purge & Deletion</h3>
-              <p style={{ margin: "0 0 8px 0" }}>You can request a full account purge at support@asl-app.com, or use the "Delete My Account Forever" function below. All data is deleted from Firestore within 24 hours.</p>
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>3. Sharing (Service Providers)</h3>
+              <p style={{ margin: "0 0 8px 0" }}>We do not sell your data or use it for cross-app advertising. We share only with providers that run the app: Google Firebase/Cloud (hosting & data), Google Gemini (automated content moderation of your text), Foursquare (venue search), and Apple (purchases).</p>
 
-              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>4. Security & Hosting</h3>
-              <p style={{ margin: "0 0 8px 0" }}>Hosted securely via Google Firebase servers. We do not sell or trade user data with any third parties.</p>
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>4. Deletion &amp; Your Choices</h3>
+              <p style={{ margin: "0 0 8px 0" }}>Delete your account anytime via "Delete My Account Forever" below — your posts, chats, connections, and account are purged (typically within 24 hours). You can also email asl.support@proton.me. Manage location access in iOS Settings.</p>
+
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>5. Security &amp; Contact</h3>
+              <p style={{ margin: "0 0 8px 0" }}>Hosted on Google Firebase with industry-standard safeguards and an in-app privacy screen. Questions: asl.support@proton.me.</p>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 8px 8px 8px", backgroundColor: "#f0f0f0" }}>
               <button 
@@ -736,31 +741,37 @@ export default function SettingsPanel({ currentUser, userDoc, onNavigateBack }) 
               textAlign: "left"
             }}>
               <h2 style={{ fontSize: "13px", margin: "0 0 4px 0", color: "#000" }}>Terms & EULA</h2>
-              <p style={{ margin: "0 0 8px 0", color: "#666" }}>Last Updated: May 31, 2026</p>
-              
-              <div style={{ 
-                border: "1px solid #ffcc00", 
-                backgroundColor: "#fff9e6", 
-                padding: "6px", 
-                fontWeight: "bold", 
-                color: "#856404", 
-                marginBottom: "8px" 
+              <p style={{ margin: "0 0 8px 0", color: "#666" }}>Last Updated: June 9, 2026</p>
+              <p style={{ margin: "0 0 8px 0" }}>You must be <strong>18+</strong> to use asl. By using it you agree to these terms. Full version at asl-app-prod.web.app/terms.html.</p>
+
+              <div style={{
+                border: "1px solid #ffcc00",
+                backgroundColor: "#fff9e6",
+                padding: "6px",
+                fontWeight: "bold",
+                color: "#856404",
+                marginBottom: "8px"
               }}>
                 ⚠️ ZERO TOLERANCE UGC POLICY
               </div>
-              <p style={{ margin: "0 0 8px 0" }}>By using asl, you agree to these terms. Abusive behavior will result in an immediate ban.</p>
+              <p style={{ margin: "0 0 8px 0" }}>There is zero tolerance for objectionable content or abusive users. Violations result in content removal and/or an immediate ban.</p>
 
               <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>1. Prohibited Content</h3>
-              <p style={{ margin: "0 0 8px 0" }}>You may not post content that is harassing, defamatory, explicit, pornography, hate speech, or discriminates against individuals or groups.</p>
+              <p style={{ margin: "0 0 8px 0" }}>No harassment, threats, defamation, sexually explicit material or nudity, hate speech or discrimination, doxxing (sharing others' personal info), spam/scams, or IP infringement.</p>
 
               <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>2. Safety Actions & Controls</h3>
-              <p style={{ margin: "0 0 8px 0" }}>• <strong>Flagging:</strong> Report any offensive post using the "Report" button to instantly hide it from feeds.</p>
-              <p style={{ margin: "0 0 8px 0" }}>• <strong>Blocking:</strong> Use the "Block" button in chat to stop all communication and hide their content.</p>
-              <p style={{ margin: "0 0 8px 0" }}>• <strong>Reporting:</strong> Warn/flag users in chats. 3 reports trigger an automatic system-wide lockout.</p>
-              <p style={{ margin: "0 0 8px 0" }}>• <strong>24h Moderation:</strong> Admins review reports within 24 hours. Offending material is deleted, and abusive accounts are banned.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>Automated filtering:</strong> posts, proofs, profiles, and chats are screened for prohibited content.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>Report:</strong> flag any post to hide it and queue it for review.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>Block:</strong> end a chat, stop messages, and hide a user's content.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>Report users:</strong> accumulated flags trigger an automatic system-wide ban.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>24h action:</strong> we review reports within 24 hours, remove violating content, and eject offenders.</p>
+              <p style={{ margin: "0 0 8px 0" }}>• <strong>Delete account:</strong> use "Delete My Account Forever" anytime.</p>
 
-              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>3. Disclaimers</h3>
-              <p style={{ margin: "0 0 8px 0" }}>The app is licensed "as-is." We are not liable for user matches, content errors, or service delays.</p>
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>3. In-App Purchases</h3>
+              <p style={{ margin: "0 0 8px 0" }}>Theme packs are non-consumable, billed by Apple to your Apple ID, restorable via "Restore Purchases," and generally non-refundable except via Apple.</p>
+
+              <h3 style={{ fontSize: "11px", margin: "8px 0 2px 0", fontWeight: "bold" }}>4. Apple & Disclaimers</h3>
+              <p style={{ margin: "0 0 8px 0" }}>This agreement is between you and asl (the developer), not Apple; Apple is a third-party beneficiary. The app is provided "as-is." We don't screen users or guarantee matches — use caution when meeting people. Contact: asl.support@proton.me.</p>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 8px 8px 8px", backgroundColor: "#f0f0f0" }}>
               <button 
