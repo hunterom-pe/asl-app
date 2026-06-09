@@ -137,7 +137,11 @@ export async function purchaseProduct(productId) {
     console.log("[IAP Service] Native Purchase Complete. Transaction ID:", transaction.transactionId);
     return {
       success: true,
-      transactionId: transaction.transactionId
+      transactionId: transaction.transactionId,
+      // Base64 StoreKit receipt — sent to validatePurchaseSecure for server-side
+      // verification with Apple (this is what makes the entitlement legitimate).
+      receipt: transaction.receipt || null,
+      jwsRepresentation: transaction.jwsRepresentation || null
     };
   } catch (err) {
     console.error("[IAP Service] Native purchase failed:", err);
@@ -152,20 +156,29 @@ export async function purchaseProduct(productId) {
  * Restores previous purchases for non-consumable items.
  * @returns {Promise<Array<string>>} List of product identifiers successfully restored
  */
+/**
+ * Restores previous purchases. Returns the app receipt (for server-side
+ * validation) plus the restored product identifiers.
+ * @returns {Promise<{ receipt: string|null, productIds: Array<string> }>}
+ */
 export async function restorePurchases() {
   const isSupported = await isIAPSupported();
-  
+
   if (!isSupported) {
     console.log("[IAP Service] Web simulation restore: Success.");
-    return [];
+    return { receipt: null, productIds: [] };
   }
 
   try {
     console.log("[IAP Service] Restoring native transactions...");
-    const result = await NativePurchases.restorePurchases();
-    // Capgo restorePurchases returns { transactions: Array<{ productIdentifier, ... }> }
-    const transactions = result.transactions || [];
-    return transactions.map(t => t.productIdentifier).filter(Boolean);
+    // restorePurchases() resolves void; getPurchases() returns the transactions
+    // (each carrying the shared app receipt) for this Apple ID.
+    await NativePurchases.restorePurchases();
+    const { purchases } = await NativePurchases.getPurchases();
+    const list = Array.isArray(purchases) ? purchases : [];
+    const receipt = (list.find(p => p && p.receipt) || {}).receipt || null;
+    const productIds = list.map(p => p && p.productIdentifier).filter(Boolean);
+    return { receipt, productIds };
   } catch (err) {
     console.error("[IAP Service] Failed to restore purchases natively:", err);
     throw err;

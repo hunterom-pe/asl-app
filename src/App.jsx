@@ -417,19 +417,18 @@ export default function App() {
         // Sync user device registration in background without overwriting theme purchases
         const syncUserDoc = async () => {
           try {
-            const docSnap = await dbGetDoc("users", user.uid);
             const updatePayload = {
               uid: user.uid,
               email: user.email || "",
               uuid: deviceUuid,
               lastLogin: Date.now()
             };
-            
-            // Only initialize default themes if the document is new or lacks them
-            if (!docSnap.exists() || !docSnap.data().unlockedThemes) {
-              updatePayload.unlockedThemes = ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"];
-            }
-            
+
+            // NOTE: `unlockedThemes` is no longer written from the client. The
+            // free default themes are always available in the UI, and purchased
+            // packs are granted ONLY by the validatePurchaseSecure Cloud Function
+            // (the field is server-only in firestore.rules). Writing it here would
+            // now be rejected by the rules.
             await dbSetDoc("users", user.uid, updatePayload, true);
           } catch (err) {
             console.error("Failed to sync user document on login:", err);

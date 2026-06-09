@@ -6,6 +6,7 @@ admin.initializeApp();
 
 const geminiKey = defineSecret("GEMINI_API_KEY");
 const foursquareKey = defineSecret("FOURSQUARE_API_KEY");
+const appleSharedSecret = defineSecret("APPLE_SHARED_SECRET");
 
 const ROASTS = [
   "You sure you want to post that, fam?",
@@ -782,6 +783,121 @@ exports.submitAppealSecure = onCall(async (request) => {
   });
 
   return { success: true };
+});
+
+// ──────────────────────────────────────────────────────────────────────────
+// In-app purchase validation (theme packs)
+//
+// Entitlements (`unlockedThemes`) are server-only — the Firestore rules forbid
+// clients from writing that field. The ONLY way to gain a theme pack is to make
+// a real App Store purchase and have its receipt verified here against Apple.
+// This makes purchases legitimate: a client cannot self-grant packs by writing
+// to its own user doc.
+// ──────────────────────────────────────────────────────────────────────────
+const BUNDLE_ID = "com.hunterom-pe.asl";
+
+// Map App Store product IDs → the themes each pack unlocks (server-authoritative;
+// must mirror the StoreKit products and the client labels).
+const PACK_THEMES = {
+  cozy_pack: ["animal-crossing", "spirited-away", "matcha-tea"],
+  badbitch_pack: ["8-ball", "long-nails", "sheer"],
+  weeb_pack: ["one-piece", "demon-slayer", "jujutsu-kaisen"],
+  screamo_pack: ["vampire-romance", "sunday-showdown", "quiet-things"],
+  teen_idol_pack: ["oops-pink", "frosted-tips", "wannabe-leopard"],
+  skateland_punk_pack: ["sk8er-boi", "rock-show-182", "boulevard-stencil"],
+  file_share_pack: ["lemonwire", "napster-kitty", "winamp-classic"],
+  socialite_gossip_pack: ["simple-life", "metallic-razr", "gossip-blog"]
+};
+
+async function verifyAppleReceipt(receipt, secret) {
+  const body = JSON.stringify({
+    "receipt-data": receipt,
+    password: secret,
+    "exclude-old-transactions": false
+  });
+  const post = async (url) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body
+    });
+    return res.json();
+  };
+  // Apple's guidance: always verify against production first; status 21007 means
+  // the receipt is from the sandbox (TestFlight / App Review), so retry there.
+  let result = await post("https://buy.itunes.apple.com/verifyReceipt");
+  if (result && result.status === 21007) {
+    result = await post("https://sandbox.itunes.apple.com/verifyReceipt");
+  }
+  return result;
+}
+
+exports.validatePurchaseSecure = onCall({ secrets: [appleSharedSecret] }, async (request) => {
+  const { data, auth } = request;
+  if (!auth) {
+    throw new HttpsError("unauthenticated", "Authentication required.");
+  }
+  if (auth.token.firebase?.sign_in_provider === "anonymous") {
+    throw new HttpsError("permission-denied", "You must have a registered account to make purchases.");
+  }
+
+  const receipt = typeof data.receipt === "string" ? data.receipt : "";
+  if (!receipt) {
+    throw new HttpsError("invalid-argument", "A purchase receipt is required for validation.");
+  }
+
+  const secret = process.env.APPLE_SHARED_SECRET;
+  if (!secret) {
+    console.error("APPLE_SHARED_SECRET is not configured.");
+    throw new HttpsError("failed-precondition", "Purchase validation is temporarily unavailable.");
+  }
+
+  let result;
+  try {
+    result = await verifyAppleReceipt(receipt, secret);
+  } catch (e) {
+    console.error("Apple receipt verification request failed:", e);
+    throw new HttpsError("unavailable", "Could not reach the App Store for validation. Try again.");
+  }
+
+  if (!result || result.status !== 0) {
+    throw new HttpsError("failed-precondition", `Receipt could not be validated (status ${result ? result.status : "none"}).`);
+  }
+  // Make sure the receipt belongs to THIS app.
+  if (result.receipt?.bundle_id && result.receipt.bundle_id !== BUNDLE_ID) {
+    throw new HttpsError("permission-denied", "Receipt does not belong to this app.");
+  }
+
+  // Collect every non-consumable the receipt proves ownership of.
+  const entries = [
+    ...(Array.isArray(result.receipt?.in_app) ? result.receipt.in_app : []),
+    ...(Array.isArray(result.latest_receipt_info) ? result.latest_receipt_info : [])
+  ];
+  const ownedProductIds = new Set(entries.map(e => e && e.product_id).filter(Boolean));
+
+  const themesToGrant = [];
+  for (const pid of ownedProductIds) {
+    if (PACK_THEMES[pid]) themesToGrant.push(...PACK_THEMES[pid]);
+  }
+
+  if (themesToGrant.length === 0) {
+    return { granted: [], unlockedThemes: [] };
+  }
+
+  const db = admin.firestore();
+  const userRef = db.collection("users").doc(auth.uid);
+  // Admin SDK bypasses the client-write lock on `unlockedThemes`. arrayUnion is
+  // idempotent, so re-validating (e.g. Restore Purchases) never duplicates.
+  await userRef.set(
+    { unlockedThemes: admin.firestore.FieldValue.arrayUnion(...themesToGrant) },
+    { merge: true }
+  );
+  const snap = await userRef.get();
+
+  return {
+    granted: themesToGrant,
+    unlockedThemes: (snap.exists && snap.data().unlockedThemes) || themesToGrant
+  };
 });
 
 // ──────────────────────────────────────────────────────────────────────────

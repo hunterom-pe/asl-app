@@ -1743,6 +1743,34 @@ export const dbCallFunction = async (name, data) => {
       return { id: newId };
     }
 
+    if (name === "validatePurchaseSecure") {
+      // Web/dev has no real Apple receipt — grant the requested pack's themes by
+      // productId so the simulated checkout still unlocks. Production validates
+      // the real receipt against Apple server-side and ignores productId.
+      const SIM_PACK_THEMES = {
+        cozy_pack: ["animal-crossing", "spirited-away", "matcha-tea"],
+        badbitch_pack: ["8-ball", "long-nails", "sheer"],
+        weeb_pack: ["one-piece", "demon-slayer", "jujutsu-kaisen"],
+        screamo_pack: ["vampire-romance", "sunday-showdown", "quiet-things"],
+        teen_idol_pack: ["oops-pink", "frosted-tips", "wannabe-leopard"],
+        skateland_punk_pack: ["sk8er-boi", "rock-show-182", "boulevard-stencil"],
+        file_share_pack: ["lemonwire", "napster-kitty", "winamp-classic"],
+        socialite_gossip_pack: ["simple-life", "metallic-razr", "gossip-blog"]
+      };
+      const themes = SIM_PACK_THEMES[data.productId] || [];
+      const uid = mockAuthInstance.currentUser ? mockAuthInstance.currentUser.uid : null;
+      if (uid && themes.length) {
+        const store = simulatedStore.getDb();
+        if (store.users && store.users[uid]) {
+          const existing = Array.isArray(store.users[uid].unlockedThemes) ? store.users[uid].unlockedThemes : [];
+          store.users[uid].unlockedThemes = [...new Set([...existing, ...themes])];
+          simulatedStore.saveDb(store);
+          return { granted: themes, unlockedThemes: store.users[uid].unlockedThemes };
+        }
+      }
+      return { granted: themes, unlockedThemes: themes };
+    }
+
     if (name === "restorePost") {
       const store = simulatedStore.getDb();
       const postId = data.postId;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import TitleBar from "./TitleBar";
 import MySpaceMusicPlayer from "./MySpaceMusicPlayer";
-import { dbGetDoc, dbSubmitReport } from "../firebase";
+import { dbGetDoc, dbSubmitReport, dbCallFunction } from "../firebase";
 import { Share } from "@capacitor/share";
 import { fetchProductDetails, purchaseProduct, restorePurchases } from "../services/iap";
 import { moderateTextWithGemini } from "../services/security";
@@ -169,7 +169,8 @@ export default function MySpaceProfileDialog({
   const [checkoutStatusText, setCheckoutStatusText] = useState("");
   const [restoring, setRestoring] = useState(false);
 
-  const ownedThemes = unlockedThemes && unlockedThemes.length ? unlockedThemes : ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"];
+  // Purchased packs only; the 6 free default themes are always unlocked (below).
+  const ownedThemes = Array.isArray(unlockedThemes) ? unlockedThemes : [];
 
   const isThemeUnlocked = (themeName) => {
     const freeThemes = ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"];
@@ -184,45 +185,22 @@ export default function MySpaceProfileDialog({
     try {
       const result = await purchaseProduct(checkoutProduct.id);
       if (result.success) {
-        setCheckoutStatusText("VERIFYING PURCHASE RECEIPT...");
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        if (onSaveProfile) {
-          let themesToUnlock = [];
-          switch (checkoutProduct.id) {
-            case "cozy_pack":
-              themesToUnlock = ["animal-crossing", "spirited-away", "matcha-tea"];
-              break;
-            case "badbitch_pack":
-              themesToUnlock = ["8-ball", "long-nails", "sheer"];
-              break;
-            case "weeb_pack":
-              themesToUnlock = ["one-piece", "demon-slayer", "jujutsu-kaisen"];
-              break;
-            case "screamo_pack":
-              themesToUnlock = ["vampire-romance", "sunday-showdown", "quiet-things"];
-              break;
-            case "teen_idol_pack":
-              themesToUnlock = ["oops-pink", "frosted-tips", "wannabe-leopard"];
-              break;
-            case "skateland_punk_pack":
-              themesToUnlock = ["sk8er-boi", "rock-show-182", "boulevard-stencil"];
-              break;
-            case "file_share_pack":
-              themesToUnlock = ["lemonwire", "napster-kitty", "winamp-classic"];
-              break;
-            case "socialite_gossip_pack":
-              themesToUnlock = ["simple-life", "metallic-razr", "gossip-blog"];
-              break;
-            default:
-              themesToUnlock = [];
-          }
-          const updatedUnlocked = [
-            ...new Set([...ownedThemes, ...themesToUnlock])
-          ];
-          await onSaveProfile(currentUserId, {
-            unlockedThemes: updatedUnlocked
-          });
+        setCheckoutStatusText("VERIFYING PURCHASE WITH APP STORE...");
+
+        // The entitlement is granted ONLY after the server verifies the receipt
+        // with Apple. We never write unlockedThemes from the client. (productId is
+        // used by the web/dev simulator; production validates the real receipt.)
+        const validation = await dbCallFunction("validatePurchaseSecure", {
+          receipt: result.receipt || null,
+          productId: checkoutProduct.id
+        });
+
+        const grantedThemes = (validation && validation.granted) || [];
+        if (!grantedThemes.length) {
+          alert("Purchase could not be verified with the App Store. If you were charged, use Restore Purchases — you won't be charged again.");
+          setCheckoutStep("idle");
+          setShowCheckoutModal(false);
+          return;
         }
         setCheckoutStep("success");
       } else {
@@ -241,51 +219,31 @@ export default function MySpaceProfileDialog({
   const handleRestorePurchases = async () => {
     setRestoring(true);
     try {
-      const restoredIds = await restorePurchases();
-      if (restoredIds.length > 0) {
-        let themesToUnlock = [];
-        if (restoredIds.includes("cozy_pack")) {
-          themesToUnlock.push("animal-crossing", "spirited-away", "matcha-tea");
-        }
-        if (restoredIds.includes("badbitch_pack")) {
-          themesToUnlock.push("8-ball", "long-nails", "sheer");
-        }
-        if (restoredIds.includes("weeb_pack")) {
-          themesToUnlock.push("one-piece", "demon-slayer", "jujutsu-kaisen");
-        }
-        if (restoredIds.includes("screamo_pack")) {
-          themesToUnlock.push("vampire-romance", "sunday-showdown", "quiet-things");
-        }
-        if (restoredIds.includes("teen_idol_pack")) {
-          themesToUnlock.push("oops-pink", "frosted-tips", "wannabe-leopard");
-        }
-        if (restoredIds.includes("skateland_punk_pack")) {
-          themesToUnlock.push("sk8er-boi", "rock-show-182", "boulevard-stencil");
-        }
-        if (restoredIds.includes("file_share_pack")) {
-          themesToUnlock.push("lemonwire", "napster-kitty", "winamp-classic");
-        }
-        if (restoredIds.includes("socialite_gossip_pack")) {
-          themesToUnlock.push("simple-life", "metallic-razr", "gossip-blog");
-        }
-        
-        if (themesToUnlock.length > 0 && onSaveProfile) {
-          const updatedUnlocked = [
-            ...new Set([...ownedThemes, ...themesToUnlock])
-          ];
-          await onSaveProfile(currentUserId, {
-            unlockedThemes: updatedUnlocked
-          });
-          alert("Success: Restored " + restoredIds.length + " package(s) and credited themes to your profile!");
-        } else {
-          alert("Restore Complete: No previous theme pack purchases found on your App Store account.");
-        }
-      } else {
+      // Re-sync with the App Store, then hand the receipt to the server, which
+      // re-verifies with Apple and (re)grants every owned pack. Entitlements are
+      // never written from the client.
+      const { receipt, productIds } = await restorePurchases();
+
+      if (!receipt) {
         alert("Restore Complete: No previous theme pack purchases found on this device.");
+        return;
+      }
+
+      const validation = await dbCallFunction("validatePurchaseSecure", {
+        receipt,
+        // productId only used by the web/dev simulator; ignored in production.
+        productId: productIds && productIds[0]
+      });
+      const grantedThemes = (validation && validation.granted) || [];
+
+      if (grantedThemes.length > 0) {
+        alert("Success: Your previous theme pack purchases have been verified and restored to your profile!");
+      } else {
+        alert("Restore Complete: No previous theme pack purchases found on your App Store account.");
       }
     } catch (err) {
       console.error("Restore failed:", err);
-      alert("Failed to restore purchases: " + err.message);
+      alert("Failed to restore purchases: " + (err.message || String(err)));
     } finally {
       setRestoring(false);
     }
@@ -749,20 +707,6 @@ export default function MySpaceProfileDialog({
                   </select>
                   {userId === currentUserId && (
                     <div style={{ marginTop: "4px", fontSize: "10px", display: "flex", gap: "10px" }}>
-                      <button
-                        type="button"
-                        style={{ background: "none", border: "none", color: "blue", textDecoration: "underline", cursor: "pointer", padding: 0 }}
-                        onClick={async () => {
-                          if (onSaveProfile) {
-                            await onSaveProfile(currentUserId, {
-                              unlockedThemes: ["classic", "glitter", "cyberpunk", "sunset", "goth", "gameboy"]
-                            });
-                            alert("Theme purchases reset! Anime themes are now locked again.");
-                          }
-                        }}
-                      >
-                        Reset Theme Purchases (Developer Test)
-                      </button>
                       <button
                         type="button"
                         style={{ background: "none", border: "none", color: "green", textDecoration: "underline", cursor: "pointer", padding: 0, fontWeight: "bold" }}

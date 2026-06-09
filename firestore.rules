@@ -41,7 +41,7 @@ service cloud.firestore {
                       || request.resource.data.homeCity == resource.data.homeCity
                     )
                     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-                         ['isAdmin', 'banned', 'flag_count', 'reporterIds', 'isBanned']
+                         ['isAdmin', 'banned', 'flag_count', 'reporterIds', 'isBanned', 'unlockedThemes']
                        )) || request.auth.token.admin == true;
     }
 
