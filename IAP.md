@@ -23,7 +23,7 @@ Theme packs are **non-consumable** purchases, validated **server-side**:
 Product IDs (must match everywhere — StoreKit file, code, App Store Connect):
 
 ```
-cozy_pack  badbitch_pack  weeb_pack  screamo_pack
+cozy_pack  y2k_glam_pack  weeb_pack  screamo_pack
 teen_idol_pack  skateland_punk_pack  file_share_pack  socialite_gossip_pack
 ```
 

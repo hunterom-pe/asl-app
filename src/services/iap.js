@@ -56,7 +56,7 @@ export async function fetchProductDetails(productIds) {
       if (id === "cozy_pack") {
         title = "Cozy Village Pack";
         desc = "Unlocks 3 themes: Pocket Crossing, Spirit Bathhouse, Matcha Tea.";
-      } else if (id === "badbitch_pack") {
+      } else if (id === "y2k_glam_pack") {
         title = "Y2K Glam Pack";
         desc = "Unlocks 3 themes: 8-Ball, Long Nails, Sheer.";
       } else if (id === "weeb_pack") {

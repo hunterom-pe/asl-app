@@ -584,7 +584,7 @@ export default function MySpaceProfileDialog({
                         const isSocialite = socialiteThemes.includes(selectedTheme);
 
                         const packId = isCozy ? "cozy_pack" 
-                                     : isBadBitch ? "badbitch_pack" 
+                                     : isBadBitch ? "y2k_glam_pack" 
                                      : isScreamo ? "screamo_pack" 
                                      : isTeenIdol ? "teen_idol_pack" 
                                      : isSkateland ? "skateland_punk_pack" 
@@ -1210,7 +1210,7 @@ export default function MySpaceProfileDialog({
                     <p style={{ margin: 0, fontSize: "11px", color: "#666" }}>
                       {checkoutProduct.id === "cozy_pack"
                         ? "Unlocks 3 themes: Pocket Crossing 🍃, Spirit Bathhouse 🏮, and Matcha Tea 🍵."
-                        : checkoutProduct.id === "badbitch_pack"
+                        : checkoutProduct.id === "y2k_glam_pack"
                         ? "Unlocks 3 themes: 8-Ball 🎱, Long Nails 💅, and Sheer ✨."
                         : checkoutProduct.id === "screamo_pack"
                         ? "Unlocks 3 themes: Vampire Romance 🦇, Sunday Showdown 🎤, and Quiet Things 🎧."
@@ -1251,7 +1251,7 @@ export default function MySpaceProfileDialog({
                   </p>
                   <p style={{ margin: "6px 0", fontSize: "12px", textAlign: "center" }}>
                     The "{checkoutProduct.id === "cozy_pack" ? "Cozy Village" 
-                          : checkoutProduct.id === "badbitch_pack" ? "Y2K Glam" 
+                          : checkoutProduct.id === "y2k_glam_pack" ? "Y2K Glam" 
                           : checkoutProduct.id === "screamo_pack" ? "Mall Goth / Screamo"
                           : checkoutProduct.id === "teen_idol_pack" ? "Teen Idol"
                           : checkoutProduct.id === "skateland_punk_pack" ? "Skateland Punk"

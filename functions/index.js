@@ -800,7 +800,7 @@ const BUNDLE_ID = "com.hunterom-pe.asl";
 // must mirror the StoreKit products and the client labels).
 const PACK_THEMES = {
   cozy_pack: ["animal-crossing", "spirited-away", "matcha-tea"],
-  badbitch_pack: ["8-ball", "long-nails", "sheer"],
+  y2k_glam_pack: ["8-ball", "long-nails", "sheer"],
   weeb_pack: ["one-piece", "demon-slayer", "jujutsu-kaisen"],
   screamo_pack: ["vampire-romance", "sunday-showdown", "quiet-things"],
   teen_idol_pack: ["oops-pink", "frosted-tips", "wannabe-leopard"],
