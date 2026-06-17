@@ -1602,7 +1602,7 @@ export default function App() {
     return (
       <div 
         style={{ 
-          backgroundColor: "#008080", 
+          background: "linear-gradient(135deg, #001a4d 0%, #003399 50%, #004fe6 100%)", 
           color: "white", 
           display: "flex", 
           flexDirection: "column",
@@ -1615,7 +1615,7 @@ export default function App() {
       >
         <img src="/logo.png" alt="asl" style={{ width: "64px", height: "64px", marginBottom: "15px", imageRendering: "pixelated" }} />
         <h2 style={{ fontWeight: "normal" }}>asl v1.0</h2>
-        <p style={{ fontSize: "11px", color: "#ccc" }}>Starting background networking services . . .</p>
+        <p style={{ fontSize: "11px", color: "#ff99cc" }}>Starting background networking services . . .</p>
       </div>
     );
   }
