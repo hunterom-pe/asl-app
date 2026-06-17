@@ -880,7 +880,7 @@ export default function App() {
       });
       // Sort by activity/login/createdAt proxy to show recently active fans
       list.sort((a, b) => (b.lastLogin || b.createdAt || 0) - (a.lastLogin || a.createdAt || 0));
-      setFavoriters(list.slice(0, 4));
+      setFavoriters(list.slice(0, 8));
     });
 
     return () => unsub();
@@ -2903,16 +2903,6 @@ export default function App() {
 
             {/* Right Profile Column */}
             <div className="myspace-right-col">
-              {/* Marquee ticker */}
-              <div style={{ backgroundColor: "#000", border: "2px inset #808080", padding: "4px 8px", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px", boxSizing: "border-box" }}>
-                <span style={{ color: "#ff007f", fontWeight: "bold", fontSize: "11px", whiteSpace: "nowrap", fontFamily: "monospace" }}>📟 SIGNAL TICKER:</span>
-                <marquee style={{ color: "#39ff14", fontFamily: "monospace", fontSize: "11px", margin: 0, padding: 0 }} scrollamount="3">
-                  {venuePosts.length > 0 
-                    ? venuePosts.map((p) => `• [${p.username || 'Anon'}]: "${p.text.slice(0, 70)}${p.text.length > 70 ? '...' : ''}"`).join("      ")
-                    : "No reports yet on the wall... Be the first to post a missed connection signal! •"}
-                </marquee>
-              </div>
-
               <div className="section-header-orange" style={{ margin: 0 }}>
                 {selectedVenue.name}'s Missed Connections Wall
               </div>
