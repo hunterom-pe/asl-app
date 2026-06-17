@@ -9,6 +9,7 @@ import MySpaceProfileDialog from "./components/MySpaceProfileDialog";
 import SettingsPanel from "./components/SettingsPanel";
 import { Geolocation } from "@capacitor/geolocation";
 import { App as CapApp } from "@capacitor/app";
+import { Share } from "@capacitor/share";
 
 
 import { 
@@ -73,6 +74,19 @@ function getDistanceInMiles(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+function getVenueEmoji(categories) {
+  if (!categories || categories.length === 0) return "🍻";
+  const cats = categories.map(c => c.toLowerCase());
+  if (cats.some(c => c.includes("arcade") || c.includes("game") || c.includes("play"))) return "👾";
+  if (cats.some(c => c.includes("speakeasy") || c.includes("secret") || c.includes("cocktail"))) return "🤫";
+  if (cats.some(c => c.includes("concert") || c.includes("music") || c.includes("rock") || c.includes("live"))) return "🎸";
+  if (cats.some(c => c.includes("beer") || c.includes("pub") || c.includes("brewery"))) return "🍻";
+  if (cats.some(c => c.includes("wine") || c.includes("lounge") || c.includes("martini"))) return "🍸";
+  if (cats.some(c => c.includes("dive") || c.includes("sports"))) return "🍺";
+  if (cats.some(c => c.includes("dance") || c.includes("club") || c.includes("disco"))) return "🪩";
+  return "🍻";
+}
+
 export default function App() {
   // Device & Auth State
   const [deviceUuid, setDeviceUuid] = useState("");
@@ -129,29 +143,24 @@ export default function App() {
     setDetectingLocation(true);
     setLocationError("");
     try {
-      let permissionGranted = false;
+      let coordinates;
       try {
-        const permission = await Geolocation.checkPermissions();
-        if (permission.location === "granted") {
-          permissionGranted = true;
-        } else {
-          const req = await Geolocation.requestPermissions();
-          if (req.location === "granted") {
-            permissionGranted = true;
-          }
+        coordinates = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: false,
+          timeout: 8000
+        });
+      } catch (errFirstAttempt) {
+        console.warn("First geolocation attempt failed, requesting permissions...", errFirstAttempt);
+        try {
+          await Geolocation.requestPermissions();
+          coordinates = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: false,
+            timeout: 8000
+          });
+        } catch (errSecondAttempt) {
+          throw new Error("Location access denied or unavailable. Please select manually.");
         }
-      } catch (errPermission) {
-        console.warn("Permission check failed:", errPermission);
       }
-
-      if (!permissionGranted) {
-        throw new Error("Location permission denied. Please select your city manually.");
-      }
-
-      const coordinates = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: false,
-        timeout: 5000
-      });
 
       const lat = coordinates.coords.latitude;
       const lng = coordinates.coords.longitude;
@@ -169,6 +178,7 @@ export default function App() {
 
       if (closestCity && minDistance <= 80) {
         setSelectedCity(closestCity.name);
+        localStorage.setItem("asl_selected_city", closestCity.name);
         if (currentUser) {
           const updates = { 
             selectedCity: closestCity.name,
@@ -216,7 +226,17 @@ export default function App() {
     _setNavigationScreen(prevScreen);
   };
 
-  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedCity, setSelectedCity] = useState(() => {
+    return localStorage.getItem("asl_selected_city") || "";
+  });
+
+  useEffect(() => {
+    if (selectedCity) {
+      localStorage.setItem("asl_selected_city", selectedCity);
+    } else {
+      localStorage.removeItem("asl_selected_city");
+    }
+  }, [selectedCity]);
   const [hideWelcome, setHideWelcome] = useState(() => {
     return localStorage.getItem("asl_hide_welcome") === "true";
   });
@@ -277,6 +297,11 @@ export default function App() {
     }, 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Scroll to top of the page whenever screen or selected venue changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [navigationScreen, selectedVenue]);
 
   // Swipe to go back gesture (from left edge)
   useEffect(() => {
@@ -1448,6 +1473,33 @@ export default function App() {
     }
   };
 
+  const handleShareVenue = async () => {
+    if (!selectedVenue) return;
+    const shareText = `Check out ${selectedVenue.name} on asl! Let's connect!`;
+    const shareUrl = `https://asl-app-prod.web.app/?venueId=${selectedVenue.fsq_id}`;
+    try {
+      const canShareResult = await Share.canShare();
+      if (canShareResult && canShareResult.value) {
+        await Share.share({
+          title: selectedVenue.name,
+          text: shareText,
+          url: shareUrl,
+          dialogTitle: `Share ${selectedVenue.name}`
+        });
+      } else {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        alert("Link copied to clipboard!");
+      }
+    } catch (err) {
+      try {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        alert("Link copied to clipboard!");
+      } catch (clipboardErr) {
+        alert("Could not share or copy link.");
+      }
+    }
+  };
+
   // Claim post ("That was me!") proof submit handler
   const handleProofSubmit = async (proofText) => {
     try {
@@ -1543,6 +1595,7 @@ export default function App() {
 
   const handleLogout = async () => {
     if (window.confirm("Are you sure you want to disconnect from asl?")) {
+      localStorage.removeItem("asl_selected_city");
       await firebaseSignOut();
       window.location.reload(); // Re-trigger guest onboarding
     }
@@ -2746,50 +2799,25 @@ export default function App() {
 
         {/* FEED / VENUE PROFILE PAGE */}
         {navigationScreen === "feed" && selectedVenue && (
-          <div className="myspace-columns">
-            {/* Left Profile Column */}
-            <div className="myspace-left-col">
-              <h2 style={{ margin: "0 0 6px 0", color: "#000", fontSize: "36px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", lineHeight: "1.1" }}>
-                <span>{selectedVenue.name}</span>
-                <span style={{ fontSize: "32px" }}>🍹</span>
-              </h2>
+          <>
+            {/* Retro Banner Block for Bar Name */}
+            <div className="myspace-bar-header-banner">
+              <h1 className="myspace-bar-header-text">
+                {selectedVenue.name}
+              </h1>
+            </div>
 
-              <div className="profile-details-table" style={{ fontSize: "11px", lineHeight: "1.4" }}>
-                <p><strong>Region:</strong> {selectedVenue.city || selectedCity}</p>
-                <p><strong>Category:</strong> {selectedVenue.categories && selectedVenue.categories.length > 0 ? selectedVenue.categories.join(", ") : "Local Spot / Venue"}</p>
-                <p><strong>Address:</strong> {selectedVenue.formatted_address}</p>
-                {selectedVenue.rating && <p><strong>Rating:</strong> ⭐ {selectedVenue.rating}/10</p>}
-                {selectedVenue.price && <p><strong>Price:</strong> {"$".repeat(selectedVenue.price)}</p>}
-                {selectedVenue.hours_display && <p><strong>Hours:</strong> {selectedVenue.hours_display}</p>}
-                {selectedVenue.open_now !== null && selectedVenue.open_now !== undefined && (
-                  <p>
-                    <strong>Status:</strong>{" "}
-                    <span style={{ color: selectedVenue.open_now ? "green" : "red", fontWeight: "bold" }}>
-                      {selectedVenue.open_now ? "🟢 OPEN NOW" : "🔴 CLOSED"}
-                    </span>
-                  </p>
-                )}
-                {selectedVenue.amenities && selectedVenue.amenities.length > 0 && (
-                  <div style={{ marginTop: "6px" }}>
-                    <strong>Highlights:</strong>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "4px" }}>
-                      {selectedVenue.amenities.map(a => (
-                        <span key={a} style={{ backgroundColor: "#e1e1e1", border: "1px solid #c0c0c0", padding: "1px 5px", borderRadius: "3px", fontSize: "9px", color: "#333", fontWeight: "bold" }}>
-                          {a}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div className="myspace-columns">
+              {/* Left Profile Column */}
+              <div className="myspace-left-col">
 
-              {/* Contact Links Box */}
-              <div className="contact-box">
+              {/* Contact Links Box in 2x2 MySpace Grid */}
+              <div className="contact-box" style={{ marginTop: 0 }}>
                 <div className="contact-box-header">Contacting {selectedVenue.name}</div>
-                <div style={{ display: "flex", gap: "6px", padding: "6px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", backgroundColor: "#ff99cc", padding: "1px" }}>
+                  {/* Grid Item 1: Post */}
                   <div 
-                    className="contact-action" 
-                    style={{ flex: 1, minHeight: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    className="contact-action-item" 
                     onClick={() => {
                       const userHomeCity = userDoc?.homeCity || userDoc?.selectedCity || selectedCity || "Phoenix";
                       const venueCity = selectedVenue.city || "Phoenix";
@@ -2809,17 +2837,116 @@ export default function App() {
                       runWithAuthenticationCheck(() => setNavigationScreen("post"));
                     }}
                   >
-                    📝 Post
+                    <span>📝</span>
+                    <span className="contact-link-text">Post Connection</span>
                   </div>
+
+                  {/* Grid Item 2: Favorite */}
                   <div 
-                    className="contact-action" 
-                    style={{ flex: 1, minHeight: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    className="contact-action-item" 
                     onClick={() => runWithAuthenticationCheck(() => handleToggleFavorite(selectedVenue))}
                   >
-                    ⭐ {userDoc?.favorited_bars?.includes(selectedVenue.fsq_id) ? "Favorited" : "Add to Favorites"}
+                    <span>⭐</span>
+                    <span className="contact-link-text">
+                      {userDoc?.favorited_bars?.includes(selectedVenue.fsq_id) ? "In My Favorites" : "Add to Favorites"}
+                    </span>
+                  </div>
+
+                  {/* Grid Item 3: Share */}
+                  <div 
+                    className="contact-action-item" 
+                    onClick={handleShareVenue}
+                  >
+                    <span>🔗</span>
+                    <span className="contact-link-text">Share Venue</span>
+                  </div>
+
+                  {/* Grid Item 4: Map/Directions */}
+                  <div 
+                    className="contact-action-item" 
+                    onClick={() => {
+                      const address = encodeURIComponent(`${selectedVenue.name}, ${selectedVenue.formatted_address}`);
+                      window.open(`https://maps.google.com/?q=${address}`, "_blank");
+                    }}
+                  >
+                    <span>🗺️</span>
+                    <span className="contact-link-text">Get Directions</span>
                   </div>
                 </div>
               </div>
+
+              {/* Interests/Details Box */}
+              <div className="myspace-interests-box" style={{ marginTop: "12px", border: "1px solid #ff99cc", borderRadius: "2px", overflow: "hidden" }}>
+                <div className="section-header-orange" style={{ margin: 0 }}>{selectedVenue.name}'s Metropage Info</div>
+                
+                <div className="myspace-details-row">
+                  <div className="myspace-details-label">Region</div>
+                  <div className="myspace-details-value">{selectedVenue.city || selectedCity}</div>
+                </div>
+                
+                <div className="myspace-details-row">
+                  <div className="myspace-details-label">Category</div>
+                  <div className="myspace-details-value">
+                    {selectedVenue.categories && selectedVenue.categories.length > 0 ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                        {selectedVenue.categories.map(cat => (
+                          <span key={cat} className="myspace-interest-tag">{cat}</span>
+                        ))}
+                      </div>
+                    ) : "Local Spot / Venue"}
+                  </div>
+                </div>
+
+                <div className="myspace-details-row">
+                  <div className="myspace-details-label">Address</div>
+                  <div className="myspace-details-value">{selectedVenue.formatted_address}</div>
+                </div>
+
+                <div className="myspace-details-row">
+                  <div className="myspace-details-label">Rating</div>
+                  <div className="myspace-details-value">{selectedVenue.rating ? `⭐ ${selectedVenue.rating}/10` : "Not Rated"}</div>
+                </div>
+
+                <div className="myspace-details-row">
+                  <div className="myspace-details-label">Price</div>
+                  <div className="myspace-details-value">{selectedVenue.price ? "$".repeat(selectedVenue.price) : "N/A"}</div>
+                </div>
+
+                <div className="myspace-details-row">
+                  <div className="myspace-details-label">Hours</div>
+                  <div className="myspace-details-value">{selectedVenue.hours_display || "N/A"}</div>
+                </div>
+
+                <div className="myspace-details-row">
+                  <div className="myspace-details-label">Status</div>
+                  <div className="myspace-details-value">
+                    {selectedVenue.open_now !== null && selectedVenue.open_now !== undefined ? (
+                      selectedVenue.open_now ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span className="online-dot-blinking" style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#00cc00", display: "inline-block" }}></span>
+                          <span style={{ color: "green", fontWeight: "bold" }}>🟢 OPEN NOW (Online Now!)</span>
+                        </div>
+                      ) : (
+                        <span style={{ color: "red", fontWeight: "bold" }}>🔴 CLOSED</span>
+                      )
+                    ) : "N/A"}
+                  </div>
+                </div>
+
+                {selectedVenue.amenities && selectedVenue.amenities.length > 0 && (
+                  <div className="myspace-details-row">
+                    <div className="myspace-details-label">Highlights</div>
+                    <div className="myspace-details-value">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                        {selectedVenue.amenities.map(a => (
+                          <span key={a} className="myspace-interest-tag">{a}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
 
 
               {/* Dynamic list of people who favorited the bar */}
@@ -2866,11 +2993,11 @@ export default function App() {
                   </div>
                 ) : (
                   venuePosts.map(post => (
-                    <div key={post.id} className="myspace-comment-card">
+                    <div key={post.id} className={`myspace-comment-card${post.status === "connected" ? " connected-shake" : ""}`}>
                       <div className="myspace-comment-left-group" style={{ display: "flex", flexDirection: "row", flexShrink: 0 }}>
                         <div className="myspace-comment-left">
                           <div 
-                            className="myspace-comment-author-avatar"
+                            className={`myspace-comment-author-avatar count-${Array.from(post.emoji_avatar || "👥🥃💖").length}`}
                             onClick={() => handleOpenProfile(post.userId, {
                               username: post.username || "Anonymous Connection",
                               mood: post.mood || "Chillin' 😎",
@@ -2878,7 +3005,7 @@ export default function App() {
                               profileTheme: post.profileTheme || "classic",
                               emoji_avatar: post.emoji_avatar || "👥🥃💖"
                             })}
-                            style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}
+                            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
                           >
                             {post.emoji_avatar || "👥🥃💖"}
                           </div>
@@ -2894,9 +3021,11 @@ export default function App() {
                           >
                             {post.username || "Anonymous"}
                           </span>
-                          <div style={{ fontSize: "10px", color: "#666", marginTop: "4px" }}>
-                            Mood: <strong>{post.mood ? post.mood.split(" ").slice(-1)[0] : "😎"}</strong>
-                          </div>
+                          {post.status !== "connected" && (
+                            <div style={{ fontSize: "10px", color: "#666", marginTop: "4px" }}>
+                              Mood: <strong>{post.mood ? post.mood.split(" ").slice(-1)[0] : "😎"}</strong>
+                            </div>
+                          )}
                         </div>
 
                         {post.status === "connected" && post.connectedWithId && (() => {
@@ -2911,7 +3040,7 @@ export default function App() {
                           return (
                             <div className="myspace-comment-left" style={{ borderLeft: "none", alignSelf: "stretch" }}>
                               <div 
-                                className="myspace-comment-author-avatar"
+                                className={`myspace-comment-author-avatar count-${Array.from(connectedProfile.emoji_avatar || "👥🥃💖").length}`}
                                 onClick={() => handleOpenProfile(post.connectedWithId, {
                                   username: post.connectedWithUsername || connectedProfile.username || "Anonymous Connection",
                                   mood: connectedProfile.mood || "Chillin' 😎",
@@ -2919,7 +3048,7 @@ export default function App() {
                                   profileTheme: connectedProfile.profileTheme || "classic",
                                   emoji_avatar: connectedProfile.emoji_avatar || "👥🥃💖"
                                 })}
-                                style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}
+                                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
                               >
                                 {connectedProfile.emoji_avatar || "👥🥃💖"}
                               </div>
@@ -2935,9 +3064,6 @@ export default function App() {
                               >
                                 {post.connectedWithUsername || connectedProfile.username || "Anonymous"}
                               </span>
-                              <div style={{ fontSize: "10px", color: "#666", marginTop: "4px" }}>
-                                Mood: <strong>{connectedProfile.mood ? connectedProfile.mood.split(" ").slice(-1)[0] : "😎"}</strong>
-                              </div>
                             </div>
                           );
                         })()}
@@ -2946,8 +3072,23 @@ export default function App() {
                       <div className="myspace-comment-right">
                         <div>
                           {post.status === "connected" && (
-                            <div style={{ backgroundColor: "#e2fbe2", border: "2px outset #4CAF50", padding: "8px", marginBottom: "12px", textAlign: "center", fontWeight: "bold", color: "#006400", fontSize: "14px", textShadow: "1px 1px 0px #fff" }}>
-                              ✨ CONNECTION MADE: {post.username || "Anonymous"} found {post.connectedWithUsername || "someone"} ✨
+                            <div style={{ 
+                              backgroundColor: "#e8f9ed", 
+                              border: "1px dashed #2e7d32", 
+                              padding: "10px", 
+                              marginBottom: "12px", 
+                              textAlign: "center", 
+                              fontWeight: "bold", 
+                              color: "#2e7d32", 
+                              fontSize: "13px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px"
+                            }}>
+                              <span>❇️</span>
+                              <span>CONNECTION SHAKE: {post.username || "Anonymous"} & {post.connectedWithUsername || "someone"} are now connected!</span>
+                              <span>❇️</span>
                             </div>
                           )}
                           <div className="myspace-comment-date">
@@ -2958,7 +3099,7 @@ export default function App() {
                             dangerouslySetInnerHTML={{ __html: `"${parseBBCode(post.text)}"` }}
                           />
                           {post.status === "connected" && post.connectedProofText && (
-                            <div style={{ marginTop: "12px", padding: "8px", backgroundColor: "#f0f0f0", borderLeft: "4px solid #000080", fontStyle: "italic", fontSize: "12px", color: "#333" }}>
+                            <div style={{ marginTop: "12px", padding: "8px", backgroundColor: "#f0f0f0", borderLeft: "4px solid #2e7d32", fontStyle: "italic", fontSize: "12px", color: "#333" }}>
                               <strong>{post.connectedWithUsername || "Response"}:</strong> "{post.connectedProofText}"
                             </div>
                           )}
@@ -2966,18 +3107,12 @@ export default function App() {
 
                         <div className="myspace-comment-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                           <button 
+                            className="myspace-btn-thumbsup"
                             onClick={() => runWithAuthenticationCheck(() => handleThumbsUp(post))}
                             style={{ 
-                              cursor: "pointer", 
-                              minHeight: "24px",
-                              padding: "2px 6px",
                               backgroundColor: isPostLiked(post.id) ? "#ffccd8" : "#dfdfdf",
                               color: isPostLiked(post.id) ? "#ff0055" : "#000000",
-                              border: isPostLiked(post.id) ? "1px solid #ff0055" : "1px solid #808080",
-                              fontWeight: "bold",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px"
+                              border: isPostLiked(post.id) ? "1px solid #ff0055" : "1px solid #808080"
                             }}
                           >
                             👍 {post.thumbsUpCount || 0}
@@ -2986,8 +3121,8 @@ export default function App() {
                           <div style={{ display: "flex", gap: "6px" }}>
                             {post.status === "connected" ? (
                               <button 
+                                className="myspace-btn-disabled"
                                 disabled
-                                style={{ minHeight: "24px", padding: "2px 8px", color: "#888", border: "1px solid #aaa", backgroundColor: "#e0e0e0" }}
                               >
                                 🔒 Already Connected
                               </button>
@@ -2995,37 +3130,30 @@ export default function App() {
                               <>
                                 {currentUser && userConnections.some(c => c.postId === post.id && c.senderId === currentUser.uid) ? (
                                   <button 
+                                    className="myspace-btn-disabled"
                                     disabled
-                                    style={{ minHeight: "24px", padding: "2px 8px", color: "#888", border: "1px solid #aaa", backgroundColor: "#e0e0e0", cursor: "not-allowed" }}
                                   >
                                     🤝 Handshake Sent
                                   </button>
                                 ) : userDoc?.handshake_cooldown && userDoc.handshake_cooldown > Date.now() ? (
                                   <button 
+                                    className="myspace-btn-disabled"
                                     disabled
-                                    style={{ minHeight: "24px", padding: "2px 8px", color: "#888", border: "1px solid #aaa", backgroundColor: "#e0e0e0", cursor: "not-allowed" }}
                                     title="Locked out from outbound handshakes for 12 hours."
                                   >
                                     🤝 Handshake Locked
                                   </button>
                                 ) : (
                                   <button 
+                                    className="myspace-btn-thatwasme"
                                     onClick={() => runWithAuthenticationCheck(() => handleThatWasMe(post))}
-                                    style={{ minHeight: "24px", padding: "2px 8px" }}
                                   >
                                     🤝 That Was Me!
                                   </button>
                                 )}
                                 <button 
+                                  className="myspace-btn-report"
                                   onClick={() => runWithAuthenticationCheck(() => handleReportPost(post))}
-                                  style={{ 
-                                    minHeight: "24px", 
-                                    padding: "2px 8px", 
-                                    backgroundColor: "#ffcccc", 
-                                    color: "#b22222", 
-                                    border: "1px solid #b22222",
-                                    fontWeight: "bold"
-                                  }}
                                 >
                                   ⚠️ Report
                                 </button>
@@ -3036,15 +3164,8 @@ export default function App() {
                                   (Your post)
                                 </span>
                                 <button 
+                                  className="myspace-btn-delete"
                                   onClick={() => handleDeletePost(post)}
-                                  style={{ 
-                                    minHeight: "24px", 
-                                    padding: "2px 8px", 
-                                    backgroundColor: "#ffcccc", 
-                                    color: "#b22222", 
-                                    border: "1px solid #b22222",
-                                    fontWeight: "bold"
-                                  }}
                                 >
                                   🗑️ Delete
                                 </button>
@@ -3059,6 +3180,7 @@ export default function App() {
               </div>
             </div>
           </div>
+          </>
         )}
 
         {/* PROFILE SCREEN */}

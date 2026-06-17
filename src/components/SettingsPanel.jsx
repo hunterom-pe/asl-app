@@ -6,7 +6,6 @@ import {
   firebaseDeleteAuthUser,
   dbSetDoc
 } from "../firebase";
-import { Geolocation } from "@capacitor/geolocation";
 import { AppIcon } from "@capacitor-community/app-icon";
 
 const TAB_COLORS = {

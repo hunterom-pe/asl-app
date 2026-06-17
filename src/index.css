@@ -253,6 +253,61 @@ body {
 @media (max-width: 480px) {
   .myspace-comment-card {
     flex-direction: column;
+    min-height: auto;
+  }
+  .myspace-comment-left-group {
+    width: auto !important;
+    margin: 8px 8px 0 8px !important;
+    background-color: #f6f6f6 !important;
+    border: 1px solid #ccc !important;
+    border-radius: 2px !important;
+    display: flex !important;
+    flex-direction: row !important;
+  }
+  .myspace-comment-card.connected-shake .myspace-comment-left-group {
+    background-color: #edf7ee !important;
+    border: 1px dashed #a2d7a7 !important;
+  }
+  .myspace-comment-left {
+    width: 100% !important;
+    flex: 1 1 0% !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    border: none !important;
+    background-color: transparent !important;
+    padding: 6px 10px !important;
+    gap: 8px !important;
+  }
+  .myspace-comment-left + .myspace-comment-left {
+    border-left: 1px solid #ccc !important;
+    border-top: none !important;
+  }
+  .myspace-comment-card.connected-shake .myspace-comment-left + .myspace-comment-left {
+    border-left: 1px dashed #a2d7a7 !important;
+  }
+  .myspace-comment-author-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    margin-bottom: 0 !important;
+    position: relative !important;
+    --avatar-font-size: 20px;
+  }
+  .myspace-comment-author-avatar.count-2 {
+    --avatar-font-size: 16px;
+  }
+  .myspace-comment-author-avatar.count-3 {
+    --avatar-font-size: 12px;
+  }
+  .myspace-comment-author-name {
+    font-size: 11px !important;
+    word-break: break-all;
+  }
+  .myspace-comment-left div {
+    margin-top: 0 !important;
+  }
+  .myspace-comment-right {
+    padding: 10px 12px 12px 12px !important;
   }
   .myspace-nav-links-row {
     flex-wrap: wrap;
@@ -287,10 +342,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
   margin-bottom: 2px;
   border-radius: 2px;
   cursor: pointer;
+  --avatar-font-size: 32px;
+  font-size: var(--avatar-font-size) !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.myspace-comment-author-avatar.count-2 {
+  --avatar-font-size: 24px;
+}
+
+.myspace-comment-author-avatar.count-3 {
+  --avatar-font-size: 18px;
 }
 
 .myspace-comment-author-name {
@@ -4887,3 +4953,218 @@ select.retro-select {
   color: #888;
   border: 1px solid #b5b5b5;
 }
+
+/* MySpace Bar Page redesign classes */
+.online-dot-blinking {
+  animation: myspace-blink 1.5s infinite;
+}
+
+@keyframes myspace-blink {
+  0% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+
+.contact-action-item {
+  background-color: #ffffff;
+  padding: 8px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+  color: #003399;
+  transition: background 0.1s ease;
+}
+
+.contact-action-item:hover {
+  background-color: #f2f6ff;
+}
+
+.contact-action-item:hover .contact-link-text {
+  text-decoration: underline;
+  color: #ff007f;
+}
+
+.myspace-details-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.myspace-details-label {
+  width: 90px;
+  background-color: #d5e4f2;
+  color: #003399;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 6px 8px;
+  text-align: right;
+  flex-shrink: 0;
+  border-right: 1px solid #ff99cc;
+  box-sizing: border-box;
+}
+
+.myspace-details-value {
+  flex: 1;
+  background-color: #ffffff;
+  color: #333333;
+  font-size: 11px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
+.myspace-interest-tag {
+  background-color: #f0f4f8;
+  border: 1px dashed #6699cc;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 9px;
+  color: #003399;
+  font-weight: bold;
+}
+
+/* MySpace Top Fan hover effect */
+.top8-friend {
+  border: 1px solid transparent;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.top8-friend:hover {
+  background-color: #fff0f5 !important;
+  border-color: #ff99cc !important;
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(255,0,127,0.05);
+}
+
+/* MySpace Comment Card connection shakes styling */
+.myspace-comment-card.connected-shake {
+  border: 1px solid #2e7d32 !important;
+  background-color: #f9fdfa !important;
+  box-shadow: 0 0 8px rgba(46, 125, 50, 0.08);
+}
+
+.myspace-comment-card.connected-shake .myspace-comment-left {
+  background-color: #edf7ee !important;
+  border-right: 1px dashed #a2d7a7 !important;
+}
+
+/* Action buttons on comments */
+.myspace-btn-thumbsup {
+  cursor: pointer;
+  min-height: 26px;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.1s ease;
+}
+
+.myspace-btn-thatwasme {
+  cursor: pointer;
+  min-height: 26px;
+  padding: 2px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: bold;
+  background-color: #3366cc;
+  color: white;
+  border: 1px solid #001f66;
+  border-radius: 2px;
+  box-shadow: inset 1px 1px #99bbff, 1px 1px 0px #000;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.myspace-btn-thatwasme:active {
+  box-shadow: inset -1px -1px #99bbff, 0px 0px 0px #000;
+  transform: translate(1px, 1px);
+}
+
+.myspace-btn-delete {
+  cursor: pointer;
+  min-height: 26px;
+  padding: 2px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: bold;
+  background-color: #ff3366;
+  color: white;
+  border: 1px solid #990022;
+  border-radius: 2px;
+  box-shadow: inset 1px 1px #ff99bb, 1px 1px 0px #000;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.myspace-btn-delete:active {
+  box-shadow: inset -1px -1px #ff99bb, 0px 0px 0px #000;
+  transform: translate(1px, 1px);
+}
+
+.myspace-btn-report {
+  cursor: pointer;
+  min-height: 26px;
+  padding: 2px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: bold;
+  background-color: #ffe6e6;
+  color: #cc0000;
+  border: 1px solid #cc0000;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.1s ease;
+}
+.myspace-btn-report:hover {
+  background-color: #ffcccc;
+}
+
+.myspace-btn-disabled {
+  min-height: 26px;
+  padding: 2px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  color: #888888;
+  border: 1px solid #cccccc;
+  background-color: #eeeeee;
+  border-radius: 2px;
+  cursor: not-allowed;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Wide retro header block for Bar Name */
+.myspace-bar-header-banner {
+  background: linear-gradient(90deg, #003399 0%, #6699cc 100%);
+  border: 4px double #ffffff;
+  outline: 1px solid #003399;
+  padding: 18px 10px;
+  margin-bottom: 12px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.myspace-bar-header-text {
+  font-family: "MS Sans Serif", monospace;
+  font-size: 32px;
+  font-weight: bold;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0px #000000;
+  margin: 0;
+  line-height: 1.2;
+}
+
+
