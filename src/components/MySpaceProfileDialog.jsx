@@ -132,7 +132,7 @@ export default function MySpaceProfileDialog({
 
   const handleShareProfile = async () => {
     const shareText = `Check out ${username}'s profile on asl! Add them to your Top 8!`;
-    const shareUrl = `asl://profile/${userId}`;
+    const shareUrl = `https://asl-app-prod.web.app/?profileId=${userId}`;
     
     try {
       const canShareResult = await Share.canShare();

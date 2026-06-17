@@ -1416,6 +1416,28 @@ export default function App() {
     };
   }, []);
 
+  // Listen for query parameter deep links (e.g. ?profileId=[userId]) on startup
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const profileId = params.get("profileId");
+      if (profileId) {
+        console.log("Deep link profileId parsed from query parameters:", profileId);
+        setTimeout(() => {
+          if (handleOpenProfileRef.current) {
+            handleOpenProfileRef.current(profileId, { username: "Friend" });
+          }
+        }, 300);
+        
+        // Clean query parameters from URL history quietly
+        const newUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch (e) {
+      console.error("Error parsing query deep links:", e);
+    }
+  }, []);
+
 
   const handleSaveProfile = async (targetUserIdOrData, updatedData) => {
     if (!currentUser) return;
@@ -1749,6 +1771,42 @@ export default function App() {
 
   return (
     <div className="myspace-layout">
+      {/* Smart app store download banner for mobile web users */}
+      {(!window.Capacitor || !window.Capacitor.isNativePlatform()) && (
+        <div style={{
+          backgroundColor: "#ffccd8",
+          color: "#99004d",
+          borderBottom: "1px solid #ff99bb",
+          padding: "8px 12px",
+          fontSize: "12px",
+          textAlign: "center",
+          fontWeight: "bold",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "8px",
+          boxSizing: "border-box",
+          flexWrap: "wrap"
+        }}>
+          <span>⚡ View asl on the native mobile app for the best experience!</span>
+          <a 
+            href="https://apps.apple.com/app/asl-missed-connections/id6740632345" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              color: "#ff007f", 
+              textDecoration: "underline",
+              backgroundColor: "#ffffff",
+              padding: "2px 8px",
+              borderRadius: "3px",
+              border: "1px solid #ff99bb"
+            }}
+          >
+            Download ASL App
+          </a>
+        </div>
+      )}
+
       {/* Global asl Header */}
       <header className="myspace-nav-header">
         <div className="myspace-nav-top" style={{ justifyContent: "center", gap: "15px" }}>
