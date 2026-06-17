@@ -15,14 +15,19 @@
 }
 
 /* Retro font loading and pixelated styling overrides */
-body {
+html, body {
   margin: 0;
   padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
   font-family: Arial, Helvetica, sans-serif;
   background-color: #e5e5e5; /* Classic MySpace Grey-blue */
   color: #000;
   overflow-y: auto;
-  overflow-x: hidden;
   user-select: auto;
   -webkit-user-select: auto;
 }
@@ -248,6 +253,16 @@ body {
 @media (max-width: 480px) {
   .myspace-comment-card {
     flex-direction: column;
+  }
+  .myspace-nav-links-row {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 0;
+  }
+  .myspace-nav-link {
+    font-size: 13px !important;
+    padding: 6px 8px;
   }
 }
 
