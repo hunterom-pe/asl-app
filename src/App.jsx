@@ -2690,7 +2690,7 @@ export default function App() {
           <div style={{ maxWidth: "500px", margin: "0 auto", width: "100%" }}>
             <div className="myspace-orange-box" style={{ backgroundColor: "#f5f5f5", border: "1px solid #ff99cc", borderRadius: "4px", padding: 0 }}>
               <div className="section-header-orange" style={{ margin: 0, backgroundColor: "#003399", color: "#fff", borderLeft: "4px solid #ff007f", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>📍 {selectedCity} Metropage Directory</span>
+                <span>📍 {selectedCity} Directory</span>
                 <button 
                   onClick={() => setNavigationScreen("city")}
                   className="auth-btn-primary"
@@ -2877,7 +2877,7 @@ export default function App() {
 
               {/* Interests/Details Box */}
               <div className="myspace-interests-box" style={{ marginTop: "12px", border: "1px solid #ff99cc", borderRadius: "2px", overflow: "hidden" }}>
-                <div className="section-header-orange" style={{ margin: 0 }}>{selectedVenue.name}'s Metropage Info</div>
+                <div className="section-header-orange" style={{ margin: 0 }}>{selectedVenue.name}'s Info</div>
                 
                 <div className="myspace-details-row">
                   <div className="myspace-details-label">Region</div>
