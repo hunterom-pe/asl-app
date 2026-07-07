@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { 
   firebaseSignInWithEmailAndPassword, 
-  firebaseLinkWithCredential,
-  firebaseLinkWithOAuth,
-  firebaseSignInWithOAuth
+  firebaseLinkWithCredential
 } from "../firebase";
 
 /**
@@ -78,28 +76,6 @@ export default function AuthDialog({ defaultTab = "register", onClose, onSuccess
     }
   };
 
-  const handleOAuthSignIn = async (providerName) => {
-    setErrorMsg("");
-    setLoading(true);
-    try {
-      if (activeTab === "register") {
-        await firebaseLinkWithOAuth(providerName);
-      } else {
-        await firebaseSignInWithOAuth(providerName);
-      }
-      setLoading(false);
-      onSuccess();
-    } catch (err) {
-      setLoading(false);
-      let msg = err.message;
-      if (msg.includes("popup-closed-by-user")) {
-        msg = "Authentication window was closed before completion.";
-      } else if (msg.includes("auth/credential-already-in-use")) {
-        msg = "This social account is already linked to another user.";
-      }
-      triggerError(msg);
-    }
-  };
 
   const triggerError = (msg) => {
     setErrorMsg(msg);

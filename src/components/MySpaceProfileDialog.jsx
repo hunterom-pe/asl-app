@@ -96,17 +96,19 @@ export default function MySpaceProfileDialog({
 
   const isAdmin = currentUserDoc?.isAdmin || false;
 
+  const [renderTime] = useState(() => Date.now());
+
   const isUserOnline = () => {
     if (userId === currentUserId) return true;
     if (!lastActiveAt) return false;
     const activeThreshold = 5 * 60 * 1000; // 5 minutes
-    return (Date.now() - lastActiveAt) < activeThreshold;
+    return (renderTime - lastActiveAt) < activeThreshold;
   };
 
   const getStatusText = () => {
     if (isUserOnline()) return "Online 📡";
     if (!lastActiveAt) return "Offline 💤";
-    const diffMs = Date.now() - lastActiveAt;
+    const diffMs = renderTime - lastActiveAt;
     const diffMins = Math.floor(diffMs / (60 * 1000));
     if (diffMins < 60) {
       return `Offline 💤 (active ${diffMins}m ago)`;

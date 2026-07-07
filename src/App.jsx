@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import AuthDialog from "./components/AuthDialog";
 import Wizard from "./components/Wizard";
 import ProofDialog from "./components/ProofDialog";
@@ -74,18 +74,6 @@ function getDistanceInMiles(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function getVenueEmoji(categories) {
-  if (!categories || categories.length === 0) return "🍻";
-  const cats = categories.map(c => c.toLowerCase());
-  if (cats.some(c => c.includes("arcade") || c.includes("game") || c.includes("play"))) return "👾";
-  if (cats.some(c => c.includes("speakeasy") || c.includes("secret") || c.includes("cocktail"))) return "🤫";
-  if (cats.some(c => c.includes("concert") || c.includes("music") || c.includes("rock") || c.includes("live"))) return "🎸";
-  if (cats.some(c => c.includes("beer") || c.includes("pub") || c.includes("brewery"))) return "🍻";
-  if (cats.some(c => c.includes("wine") || c.includes("lounge") || c.includes("martini"))) return "🍸";
-  if (cats.some(c => c.includes("dive") || c.includes("sports"))) return "🍺";
-  if (cats.some(c => c.includes("dance") || c.includes("club") || c.includes("disco"))) return "🪩";
-  return "🍻";
-}
 
 export default function App() {
   // Device & Auth State
@@ -97,6 +85,7 @@ export default function App() {
   }, [currentUser]);
   const [userDoc, setUserDoc] = useState(null);
   const [deviceBanned, setDeviceBanned] = useState(false);
+  const [renderTime] = useState(() => Date.now());
 
   // Geolocation Auto-Detection States
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
@@ -122,7 +111,7 @@ export default function App() {
     navigationHistoryRef.current = navigationHistory;
   }, [navigationHistory]);
 
-  const setNavigationScreen = (target) => {
+  const setNavigationScreen = useCallback((target) => {
     const screen = typeof target === "function" ? target(navigationScreen) : target;
     if (screen === navigationScreen) return;
     
@@ -137,7 +126,7 @@ export default function App() {
       });
     }
     _setNavigationScreen(screen);
-  };
+  }, [navigationScreen, setNavigationHistory, _setNavigationScreen]);
 
   const handleAutoDetectLocation = async () => {
     setDetectingLocation(true);
@@ -158,7 +147,7 @@ export default function App() {
             timeout: 8000
           });
         } catch (errSecondAttempt) {
-          throw new Error("Location access denied or unavailable. Please select manually.");
+          throw new Error("Location access denied or unavailable. Please select manually.", { cause: errSecondAttempt });
         }
       }
 
@@ -456,7 +445,7 @@ export default function App() {
     });
 
     return () => unsubAuth();
-  }, [deviceUuid]);
+  }, [deviceUuid, selectedCity]);
 
 
   // 2.5. Active Presence Heartbeat Update
@@ -646,7 +635,7 @@ export default function App() {
     if (window.location.pathname === "/sysop") {
       setTimeout(() => setNavigationScreen("sysop"), 0);
     }
-  }, []);
+  }, [setNavigationScreen]);
 
   // SysOp console database loader
   useEffect(() => {
@@ -984,17 +973,17 @@ export default function App() {
       }
 
       // Ensure userDoc has homeCity set in Firestore before writing post to satisfy security rules
+      let userHomeCity = userDoc?.homeCity || userDoc?.selectedCity || selectedCity || "Phoenix";
       if (userDoc && !userDoc.homeCity) {
         const defaultCity = selectedCity || "Phoenix";
         await dbSetDoc("users", currentUser.uid, {
           homeCity: defaultCity,
           selectedCity: defaultCity
         }, true);
-        userDoc.homeCity = defaultCity;
+        userHomeCity = defaultCity;
       }
 
       // Check metropolitan portal validation constraints
-      const userHomeCity = userDoc?.homeCity || userDoc?.selectedCity || selectedCity || "Phoenix";
       const postCity = postData.venueCity || "Phoenix";
       if (postCity.toLowerCase() !== userHomeCity.toLowerCase()) {
         const funnyMessages = [
@@ -1279,7 +1268,7 @@ export default function App() {
     }
   };
  
-  const handleOpenProfile = async (userId, fallbackData) => {
+  const handleOpenProfile = useCallback(async (userId, fallbackData) => {
     setNavigationScreen("profile");
     try {
       const userSnap = await dbGetDoc("profiles", userId);
@@ -1332,7 +1321,7 @@ export default function App() {
         lastActiveAt: fallbackData.lastActiveAt || null
       });
     }
-  };
+  }, [setSelectedProfileUser, setNavigationScreen]);
 
   const handleOpenProfileRef = useRef(null);
   useEffect(() => {
@@ -1490,11 +1479,11 @@ export default function App() {
         await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
         alert("Link copied to clipboard!");
       }
-    } catch (err) {
+    } catch {
       try {
         await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
         alert("Link copied to clipboard!");
-      } catch (clipboardErr) {
+      } catch {
         alert("Could not share or copy link.");
       }
     }
@@ -3135,7 +3124,7 @@ export default function App() {
                                   >
                                     🤝 Handshake Sent
                                   </button>
-                                ) : userDoc?.handshake_cooldown && userDoc.handshake_cooldown > Date.now() ? (
+                                ) : userDoc?.handshake_cooldown && userDoc.handshake_cooldown > renderTime ? (
                                   <button 
                                     className="myspace-btn-disabled"
                                     disabled
