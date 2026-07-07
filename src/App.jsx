@@ -111,7 +111,7 @@ export default function App() {
     navigationHistoryRef.current = navigationHistory;
   }, [navigationHistory]);
 
-  const setNavigationScreen = useCallback((target) => {
+  const setNavigationScreen = (target) => {
     const screen = typeof target === "function" ? target(navigationScreen) : target;
     if (screen === navigationScreen) return;
     
@@ -126,7 +126,7 @@ export default function App() {
       });
     }
     _setNavigationScreen(screen);
-  }, [navigationScreen, setNavigationHistory, _setNavigationScreen]);
+  };
 
   const handleAutoDetectLocation = async () => {
     setDetectingLocation(true);
@@ -635,7 +635,7 @@ export default function App() {
     if (window.location.pathname === "/sysop") {
       setTimeout(() => setNavigationScreen("sysop"), 0);
     }
-  }, [setNavigationScreen]);
+  }, []);
 
   // SysOp console database loader
   useEffect(() => {
@@ -1268,7 +1268,7 @@ export default function App() {
     }
   };
  
-  const handleOpenProfile = useCallback(async (userId, fallbackData) => {
+  const handleOpenProfile = async (userId, fallbackData) => {
     setNavigationScreen("profile");
     try {
       const userSnap = await dbGetDoc("profiles", userId);
@@ -1321,12 +1321,12 @@ export default function App() {
         lastActiveAt: fallbackData.lastActiveAt || null
       });
     }
-  }, [setSelectedProfileUser, setNavigationScreen]);
+  };
 
   const handleOpenProfileRef = useRef(null);
   useEffect(() => {
     handleOpenProfileRef.current = handleOpenProfile;
-  }, [handleOpenProfile]);
+  });
 
   // Listen for native deep links (asl://profile/[userId])
   useEffect(() => {

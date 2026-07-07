@@ -102,7 +102,7 @@ export default function OutlookInbox({ currentUser, userDoc, onClose, onOpenChat
         return next;
       });
     });
-  }, [connections, profileCache]);
+  }, [connections]);
 
   // Filter connections by active folder and block list
   const filteredConns = connections.filter(c => {
