@@ -445,7 +445,7 @@ export default function App() {
     });
 
     return () => unsubAuth();
-  }, [deviceUuid, selectedCity]);
+  }, [deviceUuid]);
 
 
   // 2.5. Active Presence Heartbeat Update
